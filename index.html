@@ -213,6 +213,10 @@
             </span>
           </div>
 
+          <button onclick="openCompareModal('SUB-4082')" class="hidden sm:flex px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold transition items-center gap-1.5 whitespace-nowrap" title="Mở bộ so sánh đối chiếu mã nguồn bài nộp nghi vấn">
+            <svg class="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            <span>So sánh bài nghi vấn</span>
+          </button>
           <button onclick="switchTab('contest')" class="hidden sm:flex px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold transition items-center gap-1.5 whitespace-nowrap">
             <svg class="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             <span>Bảng xếp hạng Contest</span>
@@ -517,7 +521,11 @@
             <p class="text-xs text-slate-400 mt-1">Giảng viên phụ trách: <strong class="text-amber-400">TS. Nguyễn Thị Hoa Huệ</strong> &bull; Lớp: CNTT K16</p>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="openCompareModal('SUB-4082')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 whitespace-nowrap">
+              <svg class="w-4 h-4 text-indigo-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+              <span>So sánh bài nộp nghi vấn</span>
+            </button>
             <button onclick="openCreateContestModal()" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition shadow-lg shadow-amber-500/20 flex items-center gap-1.5 whitespace-nowrap">
               <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
               <span>Tạo kỳ thi & Soạn đề</span>
@@ -546,8 +554,11 @@
             <span id="stat-review-subs" class="text-2xl font-black text-amber-400 mt-1 block">2</span>
             <span class="text-[12px] text-amber-400 block mt-1 whitespace-nowrap">Cần xem xét</span>
           </div>
-          <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
-            <span class="text-xs font-medium text-slate-400 block whitespace-nowrap">Nghi vấn gian lận</span>
+          <div onclick="openCompareModal('SUB-4082')" class="bg-slate-900 border border-rose-500/40 hover:border-rose-500/80 p-4 rounded-xl cursor-pointer transition shadow-sm hover:shadow-rose-500/20 group" title="Bấm vào để mở bộ so sánh trực quan mã nguồn nghi vấn gian lận">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-slate-400 block whitespace-nowrap">Nghi vấn gian lận</span>
+              <span class="text-[10px] text-rose-400 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-800/80 font-bold group-hover:bg-rose-900 transition">So sánh &rarr;</span>
+            </div>
             <span id="stat-cheat-subs" class="text-2xl font-black text-rose-400 mt-1 block">1</span>
             <span id="stat-cheat-desc" class="text-[12px] text-rose-400 block mt-1 whitespace-nowrap">Độ trùng &gt; 75%</span>
           </div>
@@ -569,8 +580,25 @@
               </p>
             </div>
 
-            <!-- Sensitivity Threshold Slider -->
-            <div class="bg-slate-950 border border-slate-800 p-3.5 rounded-xl min-w-[280px]">
+            <!-- Sensitivity Threshold Slider & Compare Action -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+              <button onclick="openCompareModal('SUB-4082')" class="px-3.5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-rose-600/30 whitespace-nowrap">
+                <svg class="w-4 h-4 text-rose-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                <span>So sánh trực quan bài nghi vấn</span>
+              </button>
+              <div class="bg-slate-950 border border-slate-800 p-3.5 rounded-xl min-w-[260px]">
+                <div class="flex justify-between items-center text-xs mb-1.5">
+                  <span class="text-slate-400 whitespace-nowrap">Ngưỡng cảnh báo gian lận:</span>
+                  <span id="threshold-val" class="font-black text-rose-400 text-sm whitespace-nowrap">75%</span>
+                </div>
+                <input type="range" id="threshold-range" min="50" max="95" value="75" oninput="updateGradingThreshold(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                <div class="flex justify-between items-center text-[10px] text-slate-500 mt-1 font-mono">
+                  <span>Nhạy cao (50%)</span>
+                  <span>Chuẩn (75%)</span>
+                  <span>Chặt chẽ (95%)</span>
+                </div>
+              </div>
+            </div>
               <div class="flex justify-between items-center text-xs mb-1.5">
                 <span class="text-slate-400 whitespace-nowrap">Ngưỡng cảnh báo gian lận:</span>
                 <span id="threshold-val" class="font-black text-rose-400 text-sm whitespace-nowrap">75%</span>
@@ -5821,6 +5849,7 @@ def solve_lis(arr):
       if (e.key === 'Escape') {
         closeLoginModal();
         closeGradingModal();
+        closeCompareModal();
         closeAddUserModal();
         closeEditUserModal();
         closeCancelContestModal();
@@ -5832,12 +5861,20 @@ def solve_lis(arr):
 
     document.addEventListener('DOMContentLoaded', () => {
       updateHeaderUserUI();
+      if (currentUser && currentUser.role === 'Giáo viên') {
+        switchTab('grading');
+      } else if (currentUser && currentUser.role === 'Admin') {
+        switchTab('accounts');
+      }
     });
 
     refreshProblemSelectDropdown();
     changeProblem("CA-102");
     updateContestSelector();
     updateHeaderUserUI();
+    if (currentUser && currentUser.role === 'Giáo viên') {
+      switchTab('grading');
+    }
     loadAccountsData();
     loadSubmissionsData();
     loadContestsData();
