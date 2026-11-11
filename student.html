@@ -3483,9 +3483,68 @@ def solve_lis(arr):
     // ========================================================
     function updateGradingThreshold(val) {
       plagiarismThreshold = parseInt(val);
-      document.getElementById('threshold-val').innerText = val + "%";
-      document.getElementById('stat-cheat-desc').innerText = `Độ trùng > ${val}%`;
+      const valEl = document.getElementById('threshold-val');
+      if (valEl) valEl.innerText = val + "%";
+      const descEl = document.getElementById('stat-cheat-desc');
+      if (descEl) descEl.innerText = `Độ trùng ≥ ${val}%`;
+
+      // Cập nhật nhãn độ nhạy
+      const sensTag = document.getElementById('threshold-sensitivity-tag');
+      if (sensTag) {
+        if (val < 65) {
+          sensTag.innerText = "Độ nhạy: Rất cao (Nhiều cảnh báo)";
+          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 whitespace-nowrap";
+        } else if (val <= 85) {
+          sensTag.innerText = "Độ nhạy: Chuẩn (Khuyên dùng)";
+          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap";
+        } else {
+          sensTag.innerText = "Độ nhạy: Chặt chẽ";
+          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 whitespace-nowrap";
+        }
+      }
+
+      // Đếm số bài vượt ngưỡng hiện tại
+      const cheatCount = classSubmissions.filter(s => s.similarityRate >= plagiarismThreshold).length;
+      const cheatCountEl = document.getElementById('slider-cheat-count');
+      if (cheatCountEl) cheatCountEl.innerText = `${cheatCount} bài`;
+
+      updateSubmissionsStatistics();
       renderSubmissionsTable();
+    }
+
+    function setThresholdPreset(val) {
+      const slider = document.getElementById('threshold-range');
+      if (slider) slider.value = val;
+      updateGradingThreshold(val);
+    }
+
+    function toggleFilterOnlyCheat(checked) {
+      const filterStatus = document.getElementById('filter-sub-status');
+      if (checked) {
+        if (filterStatus) filterStatus.value = 'Gian lận';
+      } else {
+        if (filterStatus && filterStatus.value === 'Gian lận') filterStatus.value = 'all';
+      }
+      renderSubmissionsTable();
+    }
+
+    function onFilterStatusChange(status) {
+      const cheatToggle = document.getElementById('toggle-filter-only-cheat');
+      if (cheatToggle) {
+        cheatToggle.checked = (status === 'Gian lận');
+      }
+      renderSubmissionsTable();
+    }
+
+    function filterByCheatCard() {
+      const filterStatus = document.getElementById('filter-sub-status');
+      if (filterStatus) filterStatus.value = 'Gian lận';
+      const cheatToggle = document.getElementById('toggle-filter-only-cheat');
+      if (cheatToggle) cheatToggle.checked = true;
+      renderSubmissionsTable();
+      const table = document.getElementById('submissions-table-body');
+      if (table) table.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      showToast(`Đang lọc các bài nộp có độ trùng lặp ≥ ${plagiarismThreshold}%`, "warn");
     }
 
     function updateSubmissionsStatistics() {
@@ -3494,11 +3553,14 @@ def solve_lis(arr):
       const statPassed = document.getElementById('stat-passed-subs');
       const statReview = document.getElementById('stat-review-subs');
       const statCheat = document.getElementById('stat-cheat-subs');
+      const sliderCheatCount = document.getElementById('slider-cheat-count');
 
+      const cheatCount = classSubmissions.filter(s => s.similarityRate >= plagiarismThreshold).length;
       if (statTotal) statTotal.innerText = classSubmissions.length;
       if (statPassed) statPassed.innerText = classSubmissions.filter(s => s.isGradedByTeacher).length;
       if (statReview) statReview.innerText = classSubmissions.filter(s => !s.isGradedByTeacher).length;
-      if (statCheat) statCheat.innerText = classSubmissions.filter(s => s.similarityRate >= plagiarismThreshold).length;
+      if (statCheat) statCheat.innerText = cheatCount;
+      if (sliderCheatCount) sliderCheatCount.innerText = `${cheatCount} bài`;
     }
 
     function renderSubmissionsTable() {
@@ -3509,6 +3571,7 @@ def solve_lis(arr):
       const search = (searchEl.value || '').toLowerCase().trim();
       const problem = (document.getElementById('filter-sub-problem')?.value) || 'all';
       const status = (document.getElementById('filter-sub-status')?.value) || 'all';
+      const isOnlyCheatToggle = document.getElementById('toggle-filter-only-cheat')?.checked || false;
 
       const filtered = classSubmissions.filter(sub => {
         const matchSearch = sub.studentName.toLowerCase().includes(search) || 
@@ -3518,7 +3581,12 @@ def solve_lis(arr):
         let matchStatus = true;
         if (status === 'graded') matchStatus = sub.isGradedByTeacher;
         else if (status === 'pending') matchStatus = !sub.isGradedByTeacher;
-        else if (status === 'Gian lận') matchStatus = sub.similarityRate >= plagiarismThreshold || sub.status === 'Gian lận';
+        else if (status === 'Gian lận') matchStatus = sub.similarityRate >= plagiarismThreshold;
+
+        // Nếu bật toggle "Chỉ hiển thị bài vượt ngưỡng gian lận"
+        if (isOnlyCheatToggle && sub.similarityRate < plagiarismThreshold) {
+          return false;
+        }
 
         return matchSearch && matchProblem && matchStatus;
       });
