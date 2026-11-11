@@ -2946,7 +2946,7 @@ def solve_lis(arr):
     // ========================================================
     // BACKEND API & ACCOUNT MANAGEMENT SYSTEM (ADMIN PORTAL)
     // ========================================================
-    const API_BASE_URL = window.location.port === '8000' ? '/api' : 'http://localhost:8000/api';
+    const API_BASE_URL = window.location.protocol === 'file:' ? 'http://localhost:8000/api' : '/api';
     let isBackendConnected = false;
 
     // Fallback in-memory accounts list in case backend is offline
