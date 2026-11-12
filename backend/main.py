@@ -381,6 +381,13 @@ async def get_problem(problem_id: str):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy bài tập!")
     return p
 
+@app.delete("/api/problems/{problem_id}", summary="Xoá đề bài khỏi ngân hàng")
+async def delete_problem(problem_id: str):
+    if problem_id in PROBLEMS_DATA:
+        del PROBLEMS_DATA[problem_id]
+        return {"status": "success", "message": f"Đã xoá đề bài {problem_id} khỏi ngân hàng!"}
+    return {"status": "success", "message": f"Đã gỡ đề bài {problem_id} khỏi hệ thống."}
+
 # ========================================================
 # USER MANAGEMENT (CRUD)
 # ========================================================

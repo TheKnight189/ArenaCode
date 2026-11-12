@@ -70,21 +70,27 @@
         <!-- Right User / Login Profile Switcher -->
         <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
           
-          <div class="text-right hidden sm:block max-w-[140px] md:max-w-[200px]">
-            <p id="user-display-name" class="text-xs font-semibold text-white truncate">Hoàng Anh Tú</p>
+          <div class="text-right hidden sm:block max-w-[140px] md:max-w-[200px] cursor-pointer" onclick="openUserProfileModal()" title="Bấm để chỉnh sửa hồ sơ cá nhân">
+            <p id="user-display-name" class="text-xs font-semibold text-white truncate hover:text-indigo-300 transition">Hoàng Anh Tú</p>
             <p id="user-display-role" class="text-[12px] text-emerald-400 flex items-center justify-end gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span> <span class="truncate">Sinh viên (20240606239)</span>
             </p>
           </div>
 
-          <!-- Avatar & Login Modal Trigger -->
+          <!-- Avatar & Profile Modal Trigger -->
           <div class="relative group">
-            <button onclick="openLoginModal()" title="Bấm để đăng nhập hoặc đổi tài khoản" class="flex items-center space-x-2 focus:outline-none">
-              <div id="user-avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-amber-500 flex items-center justify-center font-bold text-xs text-white shadow ring-2 ring-indigo-500/30 hover:ring-indigo-400 transition shrink-0">
+            <button onclick="openUserProfileModal()" title="Bấm để xem và sửa thông tin cá nhân (Email, Avatar, Tên...)" class="flex items-center space-x-2 focus:outline-none">
+              <div id="user-avatar" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-amber-500 flex items-center justify-center font-bold text-xs text-white shadow ring-2 ring-indigo-500/30 hover:ring-indigo-400 transition shrink-0 overflow-hidden">
                 AT
               </div>
             </button>
           </div>
+
+          <!-- Quick Profile Button -->
+          <button id="btn-header-profile" onclick="openUserProfileModal()" title="Chỉnh sửa thông tin cá nhân (Email, Avatar, Tên...)" class="px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 text-xs font-semibold rounded-lg border border-indigo-500/30 flex items-center gap-1.5 transition whitespace-nowrap">
+            <svg class="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span class="hidden md:inline whitespace-nowrap">Hồ sơ</span>
+          </button>
 
           <!-- Quick Login / Switch Button -->
           <button id="btn-header-switch-account" onclick="openLoginModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-lg border border-slate-700 flex items-center gap-1.5 transition whitespace-nowrap">
@@ -188,6 +194,11 @@
             </button>
             <button onclick="goToNextProblem()" title="Chuyển sang bài kế tiếp" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs flex items-center transition">
               <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <!-- Teacher / Admin delete problem button -->
+            <button id="btn-delete-problem-ide" onclick="triggerDeleteCurrentProblem()" title="Giáo viên: Xoá đề bài hiện tại khỏi ngân hàng đề" class="hidden px-2 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-lg border border-rose-500/30 text-xs items-center gap-1 transition">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              <span class="hidden sm:inline font-medium text-[11px]">Xoá đề</span>
             </button>
           </div>
 
@@ -1194,6 +1205,160 @@
   </div>
 
   <!-- ========================================================= -->
+  <!-- MODAL 1B: HỒ SƠ CÁ NHÂN & CẬP NHẬT THÔNG TIN             -->
+  <!-- ========================================================= -->
+  <div id="user-profile-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-indigo-500/40 rounded-2xl max-w-xl w-full max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-base shrink-0 border border-indigo-500/30">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span>Hồ sơ cá nhân & Đổi thông tin</span>
+              <span id="profile-role-badge" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Sinh viên</span>
+            </h3>
+            <p class="text-xs text-slate-400">Tuỳ chỉnh thông tin cá nhân, ảnh đại diện (avatar) và mật khẩu tài khoản</p>
+          </div>
+        </div>
+        <button onclick="closeUserProfileModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <form id="form-user-profile" onsubmit="saveUserProfile(event)" class="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
+        
+        <!-- SECTION 1: AVATAR CUSTOMIZATION -->
+        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
+          <label class="block font-bold text-indigo-300 uppercase tracking-wider text-[11px]">1. Ảnh đại diện (Avatar):</label>
+          
+          <div class="flex flex-col sm:flex-row items-center gap-4">
+            <!-- Big Avatar Preview -->
+            <div class="relative group shrink-0">
+              <div id="profile-avatar-preview" class="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 to-amber-500 flex items-center justify-center font-bold text-2xl text-white shadow-xl ring-4 ring-indigo-500/30 overflow-hidden">
+                AT
+              </div>
+              <label for="profile-avatar-file-input" class="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition text-[10px] font-medium p-1 text-center">
+                <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <span>Đổi ảnh</span>
+              </label>
+              <input type="file" id="profile-avatar-file-input" accept="image/*" class="hidden" onchange="handleProfileAvatarFileUpload(event)">
+            </div>
+
+            <!-- Avatar Selection Options -->
+            <div class="space-y-2.5 min-w-0 flex-1 w-full">
+              <!-- Hidden value store -->
+              <input type="hidden" id="profile-avatar-value" value="AT">
+
+              <!-- Quick Initials / Custom Text -->
+              <div>
+                <span class="text-slate-400 text-[11px] block mb-1">Ký hiệu viết tắt hoặc biểu tượng:</span>
+                <div class="flex items-center gap-2">
+                  <input type="text" id="profile-avatar-text-input" maxlength="4" placeholder="VD: AT" class="w-24 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white uppercase font-bold text-center outline-none focus:border-indigo-500" oninput="setProfileAvatarText(this.value)">
+                  <button type="button" onclick="autoGenerateAvatarInitials()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition whitespace-nowrap">
+                    Lấy từ họ tên
+                  </button>
+                  <label for="profile-avatar-file-input" class="px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs rounded-lg cursor-pointer transition whitespace-nowrap flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <span>Tải ảnh lên</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Fun Emoji Avatars -->
+              <div>
+                <span class="text-slate-400 text-[11px] block mb-1">Hoặc chọn biểu tượng Avatar nhanh:</span>
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" onclick="setProfileAvatarEmoji('👨‍💻')" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">👨‍💻</button>
+                  <button type="button" onclick="setProfileAvatarEmoji('👩‍💻')" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">👩‍💻</button>
+                  <button type="button" onclick="setProfileAvatarEmoji('🚀')" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">🚀</button>
+                  <button type="button" onclick="setProfileAvatarEmoji('⚡')" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">⚡</button>
+                  <button type="button" onclick="setProfileAvatarEmoji('🎓')" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">🎓</button>
+                  <button type="button" onclick="setProfileAvatarEmoji('💻')" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">💻</button>
+                  <button type="button" onclick="setProfileAvatarEmoji('🎯')" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">🎯</button>
+                  <button type="button" onclick="setProfileAvatarEmoji('💡')" class="w-8 h-8 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">💡</button>
+                </div>
+              </div>
+
+              <!-- Custom Image URL -->
+              <div>
+                <span class="text-slate-400 text-[11px] block mb-1">Hoặc dán link ảnh đại diện (Image URL):</span>
+                <div class="flex items-center gap-1.5">
+                  <input type="url" id="profile-avatar-url-input" placeholder="https://example.com/avatar.jpg" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-indigo-500">
+                  <button type="button" onclick="applyProfileAvatarUrl()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 transition whitespace-nowrap">Áp dụng</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: PERSONAL INFORMATION -->
+        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
+          <label class="block font-bold text-indigo-300 uppercase tracking-wider text-[11px]">2. Thông tin tài khoản:</label>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-medium text-slate-300 mb-1">Mã tài khoản / MSSV:</label>
+              <input type="text" id="profile-user-id" readonly class="w-full bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-400 cursor-not-allowed font-mono">
+            </div>
+            <div>
+              <label class="block font-medium text-slate-300 mb-1">Vai trò hệ thống:</label>
+              <input type="text" id="profile-user-role-display" readonly class="w-full bg-slate-900/60 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-400 cursor-not-allowed">
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Họ và tên <span class="text-rose-400">*</span>:</label>
+            <input type="text" id="profile-user-name" required placeholder="Nhập họ và tên đầy đủ" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500">
+          </div>
+
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Địa chỉ Email <span class="text-rose-400">*</span>:</label>
+            <input type="email" id="profile-user-email" required placeholder="email@sv.haui.edu.vn" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <!-- SECTION 3: CHANGE PASSWORD (OPTIONAL) -->
+        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="block font-bold text-indigo-300 uppercase tracking-wider text-[11px]">3. Đổi mật khẩu (Tuỳ chọn):</label>
+            <span class="text-[11px] text-slate-400">Để trống nếu không muốn đổi</span>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-medium text-slate-300 mb-1">Mật khẩu mới:</label>
+              <input type="password" id="profile-user-password" placeholder="Nhập mật khẩu mới (tối thiểu 3 ký tự)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="block font-medium text-slate-300 mb-1">Xác nhận mật khẩu mới:</label>
+              <input type="password" id="profile-user-password-confirm" placeholder="Nhập lại mật khẩu mới" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
+          <button type="button" onclick="closeUserProfileModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition whitespace-nowrap">
+            Hủy bỏ
+          </button>
+          <button type="submit" id="btn-save-profile" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 whitespace-nowrap">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span>Lưu thay đổi hồ sơ</span>
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
   <!-- MODAL 2: TẠO KỲ THI MỚI & SOẠN ĐỀ BÀI TỰ DO (CHO GIÁO VIÊN) -->
   <!-- ========================================================= -->
   <div id="create-contest-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] hidden items-center justify-center p-4">
@@ -1920,6 +2085,36 @@
     </div>
   </div>
 
+  <!-- ========================================================= -->
+  <!-- MODAL 11: XÁC NHẬN XOÁ ĐỀ BÀI (DÀNH CHO GIÁO VIÊN / ADMIN) -->
+  <!-- ========================================================= -->
+  <div id="delete-problem-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[120] hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-rose-500/40 rounded-2xl max-w-md w-full shadow-2xl relative overflow-hidden">
+      <div class="p-5 text-center space-y-4">
+        <div class="w-14 h-14 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">Xác nhận Xoá Đề Bài</h3>
+          <p class="text-xs text-slate-400 mt-1">Hành động này sẽ gỡ vĩnh viễn đề bài này khỏi ngân hàng đề thi và danh mục lựa chọn bài tập của hệ thống.</p>
+        </div>
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-left">
+          <p class="text-slate-400">Mã đề bài: <span id="del-prob-id" class="font-mono text-amber-400 font-bold"></span></p>
+          <p class="text-slate-400 mt-1 truncate">Tên đề bài: <strong id="del-prob-name" class="text-white"></strong></p>
+        </div>
+        <div class="flex items-center justify-end space-x-2 pt-2">
+          <button type="button" onclick="closeDeleteProblemModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+            Hủy bỏ
+          </button>
+          <button type="button" onclick="executeDeleteProblem()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-lg shadow-rose-600/30">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <span>Xác nhận Xoá</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <footer class="bg-slate-950 border-t border-slate-800/80 py-6 mt-12 text-center text-xs text-slate-500">
     <div class="max-w-7xl mx-auto px-4">
@@ -2412,6 +2607,25 @@ def solve_lis(arr):
       return true;
     }
 
+    // Helper lấy ký tự viết tắt từ họ tên
+    function getInitials(name) {
+      if (!name) return "SV";
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    // Helper render Avatar linh hoạt: hỗ trợ Ảnh URL, Base64 ảnh upload, Emoji hoặc Chữ viết tắt
+    function renderAvatarElement(el, avatarVal, nameVal) {
+      if (!el) return;
+      if (!avatarVal) avatarVal = getInitials(nameVal || "SV");
+      if (typeof avatarVal === 'string' && (avatarVal.startsWith('http://') || avatarVal.startsWith('https://') || avatarVal.startsWith('data:image/'))) {
+        el.innerHTML = `<img src="${avatarVal}" alt="Avatar" class="w-full h-full object-cover rounded-full">`;
+      } else {
+        el.innerHTML = `<span class="truncate font-bold">${escapeHtml(avatarVal)}</span>`;
+      }
+    }
+
     // Header & Role UI Update - Kiểm soát phân quyền hiển thị (RBAC triệt để)
     function updateHeaderUserUI() {
       const nameEl = document.getElementById('user-display-name');
@@ -2421,6 +2635,8 @@ def solve_lis(arr):
       const btnLogout = document.getElementById('btn-header-logout');
       const btnSwitchAccount = document.getElementById('btn-header-switch-account');
       const btnSwitchText = document.getElementById('btn-header-switch-text');
+      const btnProfile = document.getElementById('btn-header-profile');
+      const btnDeleteProbIde = document.getElementById('btn-delete-problem-ide');
       const headerAiBtn = document.getElementById('header-ai-status');
 
       const isGuest = !currentUser || currentUser.role === 'guest';
@@ -2524,7 +2740,6 @@ def solve_lis(arr):
         }
       } else {
         if (nameEl) nameEl.innerText = currentUser.name;
-        if (avatarEl) avatarEl.innerText = currentUser.avatar;
         if (btnLogout) btnLogout.classList.remove('hidden');
         if (btnSwitchText) btnSwitchText.innerText = "Đổi tài khoản";
         if (btnSwitchAccount) {
@@ -2533,13 +2748,34 @@ def solve_lis(arr):
 
         if (role === 'Admin') {
           if (roleEl) roleEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse shrink-0"></span> <span class="text-purple-400 font-bold whitespace-nowrap">Quản trị viên (Admin)</span>`;
-          if (avatarEl) avatarEl.className = "w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-pink-500 flex items-center justify-center font-bold text-xs text-white shadow ring-2 ring-purple-500/40 hover:ring-purple-400 transition shrink-0";
+          if (avatarEl) avatarEl.className = "w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-pink-500 flex items-center justify-center font-bold text-xs text-white shadow ring-2 ring-purple-500/40 hover:ring-purple-400 transition shrink-0 overflow-hidden";
         } else if (role === 'Giáo viên') {
           if (roleEl) roleEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0"></span> <span class="text-amber-400 font-bold whitespace-nowrap">Giảng viên HaUI</span>`;
-          if (avatarEl) avatarEl.className = "w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-amber-500 to-amber-700 flex items-center justify-center font-bold text-xs text-slate-950 shadow ring-2 ring-amber-500/40 hover:ring-amber-400 transition shrink-0";
+          if (avatarEl) avatarEl.className = "w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-amber-500 to-amber-700 flex items-center justify-center font-bold text-xs text-slate-950 shadow ring-2 ring-amber-500/40 hover:ring-amber-400 transition shrink-0 overflow-hidden";
         } else {
           if (roleEl) roleEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span> <span class="whitespace-nowrap text-emerald-400 font-semibold">Sinh viên (${currentUser.id})</span>`;
-          if (avatarEl) avatarEl.className = "w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-amber-500 flex items-center justify-center font-bold text-xs text-white shadow ring-2 ring-indigo-500/30 hover:ring-indigo-400 transition shrink-0";
+          if (avatarEl) avatarEl.className = "w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-amber-500 flex items-center justify-center font-bold text-xs text-white shadow ring-2 ring-indigo-500/30 hover:ring-indigo-400 transition shrink-0 overflow-hidden";
+        }
+        renderAvatarElement(avatarEl, currentUser.avatar, currentUser.name);
+      }
+
+      // 2b. Hiển thị / Ẩn nút Hồ sơ cá nhân
+      if (btnProfile) {
+        if (isGuest) {
+          btnProfile.classList.add('hidden');
+        } else {
+          btnProfile.classList.remove('hidden');
+        }
+      }
+
+      // 2c. Hiển thị / Ẩn nút Xoá đề bài trong IDE (chỉ Giáo viên & Admin)
+      if (btnDeleteProbIde) {
+        if (role === 'Giáo viên' || role === 'Admin') {
+          btnDeleteProbIde.classList.remove('hidden');
+          btnDeleteProbIde.classList.add('flex');
+        } else {
+          btnDeleteProbIde.classList.add('hidden');
+          btnDeleteProbIde.classList.remove('flex');
         }
       }
 
@@ -2602,6 +2838,7 @@ def solve_lis(arr):
 
     function goToPrevProblem() {
       const keys = Object.keys(problemsData);
+      if (keys.length === 0) return;
       const currentIndex = keys.indexOf(activeProblemId);
       const prevIndex = (currentIndex - 1 + keys.length) % keys.length;
       changeProblem(keys[prevIndex]);
@@ -2610,6 +2847,7 @@ def solve_lis(arr):
 
     function goToNextProblem() {
       const keys = Object.keys(problemsData);
+      if (keys.length === 0) return;
       const currentIndex = keys.indexOf(activeProblemId);
       const nextIndex = (currentIndex + 1) % keys.length;
       changeProblem(keys[nextIndex]);
@@ -2730,6 +2968,11 @@ def solve_lis(arr):
     }
 
     function changeProblem(probId) {
+      const keys = Object.keys(problemsData);
+      if (keys.length === 0) return;
+      if (!problemsData[probId]) {
+        probId = keys[0];
+      }
       activeProblemId = probId;
       const prob = problemsData[probId];
       if (!prob) return;
@@ -3082,6 +3325,262 @@ def solve_lis(arr):
     function closeLoginModal() {
       document.getElementById('login-modal').classList.add('hidden');
       document.getElementById('login-modal').classList.remove('flex');
+    }
+
+    // ========================================================
+    // USER PROFILE MANAGEMENT (STUDENT & USER EDITING)
+    // ========================================================
+    function openUserProfileModal() {
+      if (!currentUser || currentUser.role === 'guest') {
+        showToast("Vui lòng đăng nhập để chỉnh sửa thông tin cá nhân!", "warn");
+        openLoginModal();
+        return;
+      }
+
+      // Điền thông tin người dùng vào form
+      const idInput = document.getElementById('profile-user-id');
+      const roleDisplay = document.getElementById('profile-user-role-display');
+      const roleBadge = document.getElementById('profile-role-badge');
+      const nameInput = document.getElementById('profile-user-name');
+      const emailInput = document.getElementById('profile-user-email');
+      const avatarVal = document.getElementById('profile-avatar-value');
+      const avatarTextInput = document.getElementById('profile-avatar-text-input');
+      const avatarUrlInput = document.getElementById('profile-avatar-url-input');
+      const pwdInput = document.getElementById('profile-user-password');
+      const pwdConfirmInput = document.getElementById('profile-user-password-confirm');
+
+      if (idInput) idInput.value = currentUser.id || "N/A";
+      if (roleDisplay) roleDisplay.value = currentUser.role || "Sinh viên";
+      if (roleBadge) {
+        roleBadge.innerText = currentUser.role || "Sinh viên";
+        if (currentUser.role === 'Admin') {
+          roleBadge.className = "px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/30";
+        } else if (currentUser.role === 'Giáo viên') {
+          roleBadge.className = "px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-500/20 text-amber-400 border border-amber-500/30";
+        } else {
+          roleBadge.className = "px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+        }
+      }
+      if (nameInput) nameInput.value = currentUser.name || "";
+      if (emailInput) emailInput.value = currentUser.email || "";
+      if (pwdInput) pwdInput.value = "";
+      if (pwdConfirmInput) pwdConfirmInput.value = "";
+
+      const currentAvatar = currentUser.avatar || getInitials(currentUser.name || "SV");
+      if (avatarVal) avatarVal.value = currentAvatar;
+      if (avatarTextInput) {
+        if (!currentAvatar.startsWith('http') && !currentAvatar.startsWith('data:image')) {
+          avatarTextInput.value = currentAvatar;
+        } else {
+          avatarTextInput.value = "";
+        }
+      }
+      if (avatarUrlInput) {
+        if (currentAvatar.startsWith('http')) {
+          avatarUrlInput.value = currentAvatar;
+        } else {
+          avatarUrlInput.value = "";
+        }
+      }
+
+      updateProfileAvatarPreview(currentAvatar);
+
+      const m = document.getElementById('user-profile-modal');
+      if (m) {
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+      }
+    }
+
+    function closeUserProfileModal() {
+      const m = document.getElementById('user-profile-modal');
+      if (m) {
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+      }
+    }
+
+    function updateProfileAvatarPreview(val) {
+      const preview = document.getElementById('profile-avatar-preview');
+      const valInput = document.getElementById('profile-avatar-value');
+      if (valInput) valInput.value = val;
+      if (!preview) return;
+
+      if (!val) {
+        const name = document.getElementById('profile-user-name')?.value || "SV";
+        val = getInitials(name);
+      }
+
+      if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:image/'))) {
+        preview.innerHTML = `<img src="${val}" alt="Avatar" class="w-full h-full object-cover rounded-full">`;
+      } else {
+        preview.innerHTML = `<span class="truncate font-bold text-2xl text-white">${escapeHtml(val)}</span>`;
+      }
+    }
+
+    function setProfileAvatarText(val) {
+      val = (val || "").trim().substring(0, 4);
+      updateProfileAvatarPreview(val);
+    }
+
+    function autoGenerateAvatarInitials() {
+      const name = document.getElementById('profile-user-name')?.value || "";
+      const initials = getInitials(name);
+      const textInput = document.getElementById('profile-avatar-text-input');
+      if (textInput) textInput.value = initials;
+      updateProfileAvatarPreview(initials);
+      showToast(`Đã tạo ký hiệu đại diện: "${initials}"`, "info");
+    }
+
+    function setProfileAvatarEmoji(emoji) {
+      const textInput = document.getElementById('profile-avatar-text-input');
+      if (textInput) textInput.value = emoji;
+      updateProfileAvatarPreview(emoji);
+    }
+
+    function applyProfileAvatarUrl() {
+      const urlInput = document.getElementById('profile-avatar-url-input');
+      const url = urlInput ? urlInput.value.trim() : '';
+      if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        showToast("Vui lòng dán một liên kết ảnh hợp lệ (http:// hoặc https://)!", "warn");
+        return;
+      }
+      updateProfileAvatarPreview(url);
+      showToast("Đã áp dụng ảnh đại diện từ URL!", "success");
+    }
+
+    function handleProfileAvatarFileUpload(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        showToast("Vui lòng chọn một tệp hình ảnh hợp lệ (JPG, PNG, WebP)!", "warn");
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        showToast("Kích thước ảnh đại diện không nên vượt quá 2MB!", "warn");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        updateProfileAvatarPreview(dataUrl);
+        showToast("Đã tải ảnh đại diện lên thành công!", "success");
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function saveUserProfile(e) {
+      if (e) e.preventDefault();
+      if (!currentUser || currentUser.role === 'guest') {
+        showToast("Vui lòng đăng nhập trước khi chỉnh sửa hồ sơ!", "warn");
+        return;
+      }
+
+      const name = document.getElementById('profile-user-name').value.trim();
+      const email = document.getElementById('profile-user-email').value.trim();
+      let avatar = document.getElementById('profile-avatar-value').value.trim();
+      if (!avatar) avatar = getInitials(name);
+
+      const password = document.getElementById('profile-user-password').value.trim();
+      const passwordConfirm = document.getElementById('profile-user-password-confirm').value.trim();
+
+      if (!name) {
+        showToast("Vui lòng nhập họ và tên của bạn!", "warn");
+        return;
+      }
+      if (!email || !email.includes('@')) {
+        showToast("Vui lòng nhập địa chỉ email hợp lệ!", "warn");
+        return;
+      }
+      if (password) {
+        if (password.length < 3) {
+          showToast("Mật khẩu mới phải có tối thiểu 3 ký tự!", "warn");
+          return;
+        }
+        if (password !== passwordConfirm) {
+          showToast("Xác nhận mật khẩu mới không trùng khớp!", "error");
+          return;
+        }
+      }
+
+      const saveBtn = document.getElementById('btn-save-profile');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `
+          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          <span>Đang lưu...</span>
+        `;
+      }
+
+      const payload = {
+        name: name,
+        email: email,
+        avatar: avatar
+      };
+      if (password) {
+        payload.password = password;
+      }
+
+      // Gọi API cập nhật backend (FastAPI SQLite)
+      try {
+        const res = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(currentUser.id)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const updated = await res.json();
+          currentUser.name = updated.name;
+          currentUser.email = updated.email;
+          currentUser.avatar = updated.avatar;
+          showToast(`Cập nhật thông tin cá nhân thành công (${currentUser.name})!`, "success");
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.warn("Backend update error:", errData);
+          currentUser.name = name;
+          currentUser.email = email;
+          currentUser.avatar = avatar;
+          showToast(`Đã lưu thông tin cá nhân (${name})!`, "success");
+        }
+      } catch (err) {
+        // Chế độ client-side fallback
+        currentUser.name = name;
+        currentUser.email = email;
+        currentUser.avatar = avatar;
+        showToast(`Đã cập nhật thông tin cá nhân (${name})!`, "success");
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span>Lưu thay đổi hồ sơ</span>
+          `;
+        }
+      }
+
+      // Lưu trữ localStorage để giữ trạng thái sau khi refresh
+      try {
+        localStorage.setItem('codearena_profile_' + currentUser.id, JSON.stringify({
+          name: currentUser.name,
+          email: currentUser.email,
+          avatar: currentUser.avatar
+        }));
+      } catch (e) {}
+
+      // Đồng bộ tên tác giả nếu là sinh viên trong danh sách bài nộp
+      if (typeof classSubmissions !== 'undefined') {
+        classSubmissions.forEach(s => {
+          if (String(s.studentId).trim() === String(currentUser.id).trim()) {
+            s.studentName = currentUser.name;
+            s.studentAvatar = currentUser.avatar;
+          }
+        });
+      }
+
+      updateHeaderUserUI();
+      closeUserProfileModal();
     }
 
     // Đăng xuất người dùng về trạng thái Khách
@@ -3724,25 +4223,42 @@ def solve_lis(arr):
     // ========================================================
     // CONTEST CREATION & FREE CUSTOM PROBLEM BUILDER
     // ========================================================
-    function openCreateContestModal() {
-      if (!checkTeacherOrAdminAccess()) return;
-      
+    function renderContestProblemsChecklist() {
       const listContainer = document.getElementById('existing-problems-checklist');
+      if (!listContainer) return;
       listContainer.innerHTML = '';
-      for (const pId in problemsData) {
-        const p = problemsData[pId];
-        const label = document.createElement('label');
-        label.className = "flex items-start space-x-2.5 text-slate-300 cursor-pointer p-2.5 rounded-xl hover:bg-slate-900 border border-slate-800 transition min-w-0 bg-slate-950/40";
-        label.innerHTML = `
-          <input type="checkbox" name="contest-prob" value="${p.id}" checked class="mt-0.5 rounded bg-slate-950 border-slate-700 text-amber-500 shrink-0">
-          <div class="min-w-0 flex-1 text-xs leading-relaxed">
-            <span class="break-words font-medium"><strong class="text-white">${p.id}:</strong> ${escapeHtml(p.name)}</span>
-            <span class="text-amber-400 font-semibold text-[11px] ml-1 shrink-0 whitespace-nowrap">(${p.diff})</span>
-          </div>
-        `;
-        listContainer.appendChild(label);
+      const isTeacherOrAdmin = currentUser && (currentUser.role === 'Giáo viên' || currentUser.role === 'Admin');
+      
+      const probKeys = Object.keys(problemsData);
+      if (probKeys.length === 0) {
+        listContainer.innerHTML = '<div class="col-span-2 text-center p-4 text-slate-500 italic text-xs">Hiện chưa có đề bài nào trong ngân hàng. Hãy tạo đề tự do bên dưới!</div>';
+        return;
       }
 
+      for (const pId of probKeys) {
+        const p = problemsData[pId];
+        const card = document.createElement('div');
+        card.className = "flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-900 border border-slate-800 transition min-w-0 bg-slate-950/40 group";
+        card.innerHTML = `
+          <label class="flex items-start space-x-2.5 text-slate-300 cursor-pointer min-w-0 flex-1">
+            <input type="checkbox" name="contest-prob" value="${p.id}" checked class="mt-0.5 rounded bg-slate-950 border-slate-700 text-amber-500 shrink-0">
+            <div class="min-w-0 flex-1 text-xs leading-relaxed">
+              <span class="break-words font-medium"><strong class="text-white">${p.id}:</strong> ${escapeHtml(p.name)}</span>
+              <span class="text-amber-400 font-semibold text-[11px] ml-1 shrink-0 whitespace-nowrap">(${p.diff})</span>
+            </div>
+          </label>
+          ${isTeacherOrAdmin ? `
+          <button type="button" onclick="confirmDeleteProblem('${p.id}', event)" title="Xoá đề bài ${p.id} khỏi ngân hàng" class="p-1.5 text-rose-400/70 hover:text-rose-300 hover:bg-rose-950/80 rounded-lg transition ml-2 shrink-0 border border-transparent hover:border-rose-500/30">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>` : ''}
+        `;
+        listContainer.appendChild(card);
+      }
+    }
+
+    function openCreateContestModal() {
+      if (!checkTeacherOrAdminAccess()) return;
+      renderContestProblemsChecklist();
       const m = document.getElementById('create-contest-modal');
       if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
     }
@@ -3750,6 +4266,83 @@ def solve_lis(arr):
     function closeCreateContestModal() {
       const m = document.getElementById('create-contest-modal');
       if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+    }
+
+    // ========================================================
+    // TEACHER & ADMIN PROBLEM DELETION LOGIC
+    // ========================================================
+    let pendingDeleteProblemId = null;
+
+    function triggerDeleteCurrentProblem() {
+      if (!checkTeacherOrAdminAccess()) return;
+      confirmDeleteProblem(activeProblemId);
+    }
+
+    function confirmDeleteProblem(pId, event) {
+      if (event) event.stopPropagation();
+      if (!checkTeacherOrAdminAccess()) return;
+      
+      const prob = problemsData[pId];
+      if (!prob) {
+        showToast("Không tìm thấy đề bài cần xoá!", "warn");
+        return;
+      }
+      
+      pendingDeleteProblemId = pId;
+      const idEl = document.getElementById('del-prob-id');
+      const nameEl = document.getElementById('del-prob-name');
+      if (idEl) idEl.innerText = pId;
+      if (nameEl) nameEl.innerText = prob.name;
+
+      const m = document.getElementById('delete-problem-modal');
+      if (m) {
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+      }
+    }
+
+    function closeDeleteProblemModal() {
+      pendingDeleteProblemId = null;
+      const m = document.getElementById('delete-problem-modal');
+      if (m) {
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+      }
+    }
+
+    async function executeDeleteProblem() {
+      if (!pendingDeleteProblemId) return;
+      if (!checkTeacherOrAdminAccess()) return;
+
+      const pId = pendingDeleteProblemId;
+      const pName = problemsData[pId]?.name || pId;
+
+      // 1. Gỡ khỏi problemsData
+      delete problemsData[pId];
+
+      // 2. Gửi request xoá ở backend nếu đang kết nối API
+      try {
+        fetch(`${API_BASE_URL}/problems/${encodeURIComponent(pId)}`, {
+          method: 'DELETE'
+        }).catch(() => {});
+      } catch (err) {}
+
+      // 3. Cập nhật lại dropdown danh sách bài tập IDE
+      refreshProblemSelectDropdown();
+
+      // 4. Nếu bài đang active bị xoá, chuyển sang bài còn lại
+      const remainingKeys = Object.keys(problemsData);
+      if (activeProblemId === pId) {
+        if (remainingKeys.length > 0) {
+          changeProblem(remainingKeys[0]);
+        }
+      }
+
+      // 5. Cập nhật checklist trong modal tạo kỳ thi nếu đang mở
+      renderContestProblemsChecklist();
+
+      closeDeleteProblemModal();
+      showToast(`Đã xoá thành công đề bài [${pId}] ${pName} khỏi hệ thống!`, "success");
     }
 
     function addCustomProblemToBank() {
@@ -3788,18 +4381,7 @@ def solve_lis(arr):
         cppBuggy: `#include <iostream>\nusing namespace std;\nint main() { return 0; }`
       };
 
-      const listContainer = document.getElementById('existing-problems-checklist');
-      const label = document.createElement('label');
-      label.className = "flex items-start space-x-2.5 text-slate-300 cursor-pointer p-2.5 rounded-xl bg-amber-950/30 border border-amber-500/40 transition min-w-0";
-      label.innerHTML = `
-        <input type="checkbox" name="contest-prob" value="${pId}" checked class="mt-0.5 rounded bg-slate-950 border-slate-700 text-amber-500 shrink-0">
-        <div class="min-w-0 flex-1 text-xs leading-relaxed">
-          <span class="break-words font-medium"><strong class="text-white">${pId}:</strong> ${escapeHtml(title)}</span>
-          <span class="text-emerald-400 font-bold text-[11px] ml-1 shrink-0 whitespace-nowrap">(Mới tạo)</span>
-        </div>
-      `;
-      listContainer.prepend(label);
-
+      renderContestProblemsChecklist();
       refreshProblemSelectDropdown();
       showToast(`Đã lưu đề bài mới [${pId}: ${title}] vào ngân hàng đề thi!`, "success");
     }
@@ -5937,6 +6519,8 @@ def solve_lis(arr):
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         closeLoginModal();
+        closeUserProfileModal();
+        closeDeleteProblemModal();
         closeGradingModal();
         closeCompareModal();
         closeAddUserModal();
@@ -5949,6 +6533,18 @@ def solve_lis(arr):
     });
 
     document.addEventListener('DOMContentLoaded', () => {
+      // Khôi phục thông tin hồ sơ đã lưu nếu có
+      if (currentUser && currentUser.id) {
+        try {
+          const savedProfile = localStorage.getItem('codearena_profile_' + currentUser.id);
+          if (savedProfile) {
+            const parsed = JSON.parse(savedProfile);
+            if (parsed.name) currentUser.name = parsed.name;
+            if (parsed.email) currentUser.email = parsed.email;
+            if (parsed.avatar) currentUser.avatar = parsed.avatar;
+          }
+        } catch (err) {}
+      }
       updateHeaderUserUI();
       if (currentUser && currentUser.role === 'Giáo viên') {
         switchTab('grading');
