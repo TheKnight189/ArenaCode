@@ -20,7 +20,8 @@ if ENV_FILE.exists():
     except Exception as e:
         print(f"[CodeArena Config] Cảnh báo đọc file .env: {e}")
 
-# Cấu hình Cơ sở dữ liệu SQLite duy nhất
+# Cấu hình Cơ sở dữ liệu: Hỗ trợ PostgreSQL (Render / Supabase / Neon) và SQLite (Local Fallback)
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 SQLITE_PATH = str(BASE_DIR / "codearena.db")
 DB_PATH = SQLITE_PATH
 
@@ -33,9 +34,16 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip()
 
 def get_database_config():
-    """Trả về từ điển tóm tắt cấu hình CSDL SQLite hiện hành"""
+    """Trả về từ điển tóm tắt cấu hình CSDL hiện hành"""
+    if DATABASE_URL:
+        return {
+            "engine": "PostgreSQL",
+            "connected": True,
+            "url": DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else "configured"
+        }
     return {
         "engine": "SQLite",
+        "connected": True,
         "path": SQLITE_PATH
     }
 

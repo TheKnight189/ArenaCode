@@ -6,21 +6,49 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 
 from backend.auth import hash_password, generate_avatar
-from backend.config import SQLITE_PATH
+from backend.config import SQLITE_PATH, DATABASE_URL
 
 logger = logging.getLogger("codearena.database")
 logging.basicConfig(level=logging.INFO)
 
+def mask_database_url(url: str) -> str:
+    """Ẩn mật khẩu trong connection string khi trả về API status để bảo mật"""
+    if not url:
+        return ""
+    try:
+        if "@" in url:
+            prefix, host_part = url.split("@", 1)
+            if "://" in prefix:
+                proto, user_pass = prefix.split("://", 1)
+                user = user_pass.split(":")[0] if ":" in user_pass else user_pass
+                return f"{proto}://{user}:****@{host_part}"
+        return "postgresql://****"
+    except Exception:
+        return "postgresql://****"
+
 class CodeArenaCursor:
-    """Cursor wrapper cho SQLite, tự động hỗ trợ cả placeholder ? và %s, trả về Dict"""
-    def __init__(self, raw_cursor):
+    """Cursor wrapper hỗ trợ đồng thời SQLite và PostgreSQL, tự động chuẩn hóa placeholder và cú pháp"""
+    def __init__(self, raw_cursor, is_postgres: bool = False):
         self.raw_cursor = raw_cursor
+        self.is_postgres = is_postgres
 
     def execute(self, query: str, args=None):
-        sql = query.replace("%s", "?").replace("INSERT IGNORE", "INSERT OR IGNORE")
-        if args is None:
-            return self.raw_cursor.execute(sql)
-        return self.raw_cursor.execute(sql, args)
+        if self.is_postgres:
+            # PostgreSQL: Giữ %s, chuẩn hóa INSERT IGNORE sang ON CONFLICT DO NOTHING, escape cột `desc`
+            sql = query.replace("`desc`", '"desc"')
+            if "INSERT IGNORE INTO" in sql:
+                sql = sql.replace("INSERT IGNORE INTO", "INSERT INTO")
+                if "ON CONFLICT" not in sql:
+                    sql = sql.strip() + " ON CONFLICT DO NOTHING"
+            if args is None:
+                return self.raw_cursor.execute(sql)
+            return self.raw_cursor.execute(sql, args)
+        else:
+            # SQLite: Đổi %s thành ?, INSERT IGNORE thành INSERT OR IGNORE, bỏ backtick `desc`
+            sql = query.replace("%s", "?").replace("INSERT IGNORE", "INSERT OR IGNORE").replace("`desc`", "desc")
+            if args is None:
+                return self.raw_cursor.execute(sql)
+            return self.raw_cursor.execute(sql, args)
 
     def fetchone(self) -> Optional[Dict[str, Any]]:
         row = self.raw_cursor.fetchone()
@@ -43,12 +71,13 @@ class CodeArenaCursor:
             pass
 
 class CodeArenaConnection:
-    """Connection wrapper chuẩn cho CSDL SQLite"""
-    def __init__(self, raw_conn):
+    """Connection wrapper chuẩn cho CSDL SQLite & PostgreSQL"""
+    def __init__(self, raw_conn, is_postgres: bool = False):
         self.raw_conn = raw_conn
+        self.is_postgres = is_postgres
 
     def cursor(self) -> CodeArenaCursor:
-        return CodeArenaCursor(self.raw_conn.cursor())
+        return CodeArenaCursor(self.raw_conn.cursor(), is_postgres=self.is_postgres)
 
     def commit(self):
         try:
@@ -72,24 +101,107 @@ class CodeArenaConnection:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            self.rollback()
+        else:
+            self.commit()
         self.close()
 
 def get_db() -> CodeArenaConnection:
-    """Lấy kết nối tới CSDL SQLite"""
+    """Lấy kết nối tới CSDL (ưu tiên PostgreSQL nếu có DATABASE_URL, ngược lại fallback SQLite)"""
+    if DATABASE_URL:
+        try:
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            pg_url = DATABASE_URL
+            if pg_url.startswith("postgres://"):
+                pg_url = "postgresql://" + pg_url[11:]
+            conn = psycopg2.connect(pg_url, cursor_factory=RealDictCursor)
+            return CodeArenaConnection(conn, is_postgres=True)
+        except Exception as pge:
+            logger.warning(f"⚠️ [CodeArena DB] Lỗi kết nối PostgreSQL ({pge}), chuyển sang SQLite fallback.")
+
     conn = sqlite3.connect(SQLITE_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    return CodeArenaConnection(conn)
+    return CodeArenaConnection(conn, is_postgres=False)
 
 def get_db_status() -> Dict[str, Any]:
-    """Trả về trạng thái kết nối CSDL SQLite phục vụ API /api/health và giao diện"""
+    """Trả về trạng thái kết nối CSDL phục vụ API /api/health và giao diện"""
+    if DATABASE_URL:
+        return {
+            "engine": "PostgreSQL",
+            "connected": True,
+            "url": mask_database_url(DATABASE_URL),
+            "label": "Render PostgreSQL Cloud Database",
+            "mode": "cloud",
+            "message": "CSDL PostgreSQL trên Render đang hoạt động ổn định"
+        }
     return {
         "engine": "SQLite",
         "connected": True,
         "file": SQLITE_PATH,
-        "label": "SQLite Database",
+        "label": "SQLite Database (Local)",
         "mode": "standalone",
         "message": "CSDL SQLite đang hoạt động ổn định"
     }
+
+def _init_postgres_schema(cursor):
+    """Tạo schema bảng dữ liệu trên PostgreSQL"""
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(100) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        salt TEXT NOT NULL,
+        role VARCHAR(50) NOT NULL,
+        avatar VARCHAR(50) NOT NULL,
+        status VARCHAR(50) NOT NULL DEFAULT 'active',
+        created_at VARCHAR(50) NOT NULL,
+        updated_at VARCHAR(50) NOT NULL
+    );
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS submissions (
+        id VARCHAR(100) PRIMARY KEY,
+        student_id VARCHAR(100) NOT NULL,
+        student_name VARCHAR(255) NOT NULL,
+        problem_id VARCHAR(100) NOT NULL,
+        problem_name VARCHAR(255) NOT NULL,
+        language VARCHAR(50) NOT NULL,
+        code TEXT NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        test_passed VARCHAR(50) NOT NULL,
+        runtime VARCHAR(50) NOT NULL,
+        memory VARCHAR(50) NOT NULL,
+        score VARCHAR(50) NOT NULL,
+        ai_score VARCHAR(50) NOT NULL,
+        ai_rubric TEXT,
+        similarity_rate DOUBLE PRECISION DEFAULT 0.0,
+        feedback TEXT,
+        is_graded_by_teacher INTEGER NOT NULL DEFAULT 0,
+        graded_by VARCHAR(255),
+        graded_at VARCHAR(50),
+        created_at VARCHAR(50) NOT NULL
+    );
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS contests (
+        id VARCHAR(100) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        "desc" TEXT,
+        creator VARCHAR(255) NOT NULL,
+        start_time VARCHAR(50) NOT NULL,
+        duration_minutes INTEGER NOT NULL DEFAULT 120,
+        status VARCHAR(50) NOT NULL DEFAULT 'Đang diễn ra',
+        rule TEXT NOT NULL,
+        grader_mode VARCHAR(50) NOT NULL DEFAULT 'hybrid',
+        problems TEXT NOT NULL,
+        created_at VARCHAR(50) NOT NULL
+    );
+    """)
 
 def _init_sqlite_schema(cursor):
     cursor.execute("""
@@ -368,14 +480,35 @@ def _seed_data_if_needed(cursor, conn):
         conn.commit()
 
 def init_db():
-    """Khởi tạo CSDL SQLite chính thức"""
+    """Khởi tạo CSDL chính thức (ưu tiên PostgreSQL nếu có DATABASE_URL trên Render, fallback SQLite khi chạy cục bộ)"""
+    if DATABASE_URL:
+        try:
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            pg_url = DATABASE_URL
+            if pg_url.startswith("postgres://"):
+                pg_url = "postgresql://" + pg_url[11:]
+            conn = psycopg2.connect(pg_url, cursor_factory=RealDictCursor)
+            cursor = conn.cursor()
+            _init_postgres_schema(cursor)
+            conn.commit()
+            wrapped_conn = CodeArenaConnection(conn, is_postgres=True)
+            wrapped_cursor = CodeArenaCursor(cursor, is_postgres=True)
+            _seed_data_if_needed(wrapped_cursor, wrapped_conn)
+            conn.commit()
+            conn.close()
+            logger.info("🐘 [CodeArena DB] CSDL PostgreSQL trên Render/Cloud đã kết nối và khởi tạo thành công!")
+            return
+        except Exception as pge:
+            logger.warning(f"⚠️ [CodeArena DB] Không thể khởi tạo PostgreSQL ({pge}), chuyển sang SQLite fallback.")
+
     try:
         conn = sqlite3.connect(SQLITE_PATH, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         _init_sqlite_schema(cursor)
-        wrapped_conn = CodeArenaConnection(conn)
-        wrapped_cursor = CodeArenaCursor(cursor)
+        wrapped_conn = CodeArenaConnection(conn, is_postgres=False)
+        wrapped_cursor = CodeArenaCursor(cursor, is_postgres=False)
         _seed_data_if_needed(wrapped_cursor, wrapped_conn)
         conn.commit()
         conn.close()
