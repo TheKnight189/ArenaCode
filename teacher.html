@@ -860,11 +860,18 @@
           <div class="flex items-center gap-2">
             <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             <h3 class="text-sm font-bold text-white">Bảng xếp hạng Trực tiếp (Live ICPC Scoreboard)</h3>
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Đồng bộ Live
+            </span>
           </div>
           <div class="text-xs text-slate-400 flex flex-wrap items-center gap-3">
             <span class="flex items-center gap-1.5 whitespace-nowrap"><span class="w-3 h-3 rounded bg-emerald-950 border border-emerald-800 inline-block shrink-0"></span> Đã giải (+Attempts)</span>
             <span class="flex items-center gap-1.5 whitespace-nowrap"><span class="w-3 h-3 rounded bg-rose-950/60 border border-rose-900 inline-block shrink-0"></span> Nộp sai (-Attempts)</span>
-            <span class="text-indigo-400 font-medium">Tự động xếp hạng theo số bài giải & Penalty</span>
+            <button onclick="refreshLeaderboardData()" title="Làm mới bảng xếp hạng ngay" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer">
+              <svg id="btn-refresh-leaderboard-icon" class="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span>Làm mới</span>
+            </button>
           </div>
         </div>
 
@@ -3531,8 +3538,10 @@ def solve_lis(arr):
               gradedBy: s.graded_by,
               gradedAt: s.graded_at
             }));
+            rebuildLeaderboardFromSubmissions();
             renderSubmissionsTable();
             renderStudentResultsTab();
+            renderLeaderboard();
             updateSubmitButtonState();
           }
         }
@@ -3609,13 +3618,15 @@ def solve_lis(arr):
     window.addEventListener('focus', stopTitleFlash);
     window.addEventListener('click', stopTitleFlash);
 
-    // Initialize BroadcastChannel for instant cross-tab notification
+    // Initialize BroadcastChannel for instant cross-tab notification & Leaderboard Live Sync
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         contestBroadcastChannel = new BroadcastChannel('codearena_contest_channel');
         contestBroadcastChannel.onmessage = function(e) {
           if (e.data && e.data.type === 'NEW_CONTEST' && e.data.contest) {
             handleIncomingNewContest(e.data.contest, true);
+          } else if (e.data && (e.data.type === 'NEW_SUBMISSION' || e.data.type === 'SUBMISSION_GRADED' || e.data.type === 'REFRESH_LEADERBOARD')) {
+            loadSubmissionsData();
           }
         };
       }
@@ -4643,12 +4654,220 @@ def solve_lis(arr):
       }
     }
 
+    // Dynamic Leaderboard Data Rebuilder from Real Submissions
+    function rebuildLeaderboardFromSubmissions() {
+      const activeC = contests.find(c => c.id === activeContestId) || contests[0];
+      if (!activeC) return;
+      const probs = activeC.problems || [];
+
+      // 1. Participant Map
+      const participantMap = new Map();
+
+      // Mock baseline participants
+      const defaultParticipants = [
+        {
+          studentName: "Nguyễn Kim Huy",
+          studentId: "20240606240",
+          baseProblems: {
+            "CA-101": { solved: true, attempts: 1, solveTime: 15 },
+            "CA-102": { solved: true, attempts: 1, solveTime: 30 },
+            "CA-103": { solved: true, attempts: 2, solveTime: 77 },
+            "CA-104": { solved: false, attempts: 1, solveTime: 0 }
+          }
+        },
+        {
+          studentName: "Nguyễn Cảnh Hải",
+          studentId: "20240606241",
+          baseProblems: {
+            "CA-101": { solved: true, attempts: 1, solveTime: 18 },
+            "CA-102": { solved: true, attempts: 2, solveTime: 47 },
+            "CA-103": { solved: false, attempts: 2, solveTime: 0 },
+            "CA-104": { solved: false, attempts: 0, solveTime: 0 }
+          }
+        },
+        {
+          studentName: "Hoàng Anh Tú",
+          studentId: "20240606239",
+          baseProblems: {}
+        }
+      ];
+
+      defaultParticipants.forEach(dp => {
+        participantMap.set(dp.studentId, {
+          studentName: dp.studentName,
+          studentId: dp.studentId,
+          solvedCount: 0,
+          totalPenalty: 0,
+          problems: {}
+        });
+        probs.forEach(pId => {
+          if (dp.baseProblems && dp.baseProblems[pId]) {
+            participantMap.get(dp.studentId).problems[pId] = { ...dp.baseProblems[pId] };
+          } else {
+            participantMap.get(dp.studentId).problems[pId] = { solved: false, attempts: 0, solveTime: 0 };
+          }
+        });
+      });
+
+      // Include current logged in user
+      if (currentUser && currentUser.id && currentUser.role !== 'Admin') {
+        if (!participantMap.has(currentUser.id)) {
+          const newP = {
+            studentName: currentUser.name,
+            studentId: currentUser.id,
+            solvedCount: 0,
+            totalPenalty: 0,
+            problems: {}
+          };
+          probs.forEach(pId => {
+            newP.problems[pId] = { solved: false, attempts: 0, solveTime: 0 };
+          });
+          participantMap.set(currentUser.id, newP);
+        } else {
+          participantMap.get(currentUser.id).studentName = currentUser.name;
+        }
+      }
+
+      // Include users from accountsList
+      if (typeof accountsList !== 'undefined' && accountsList.length > 0) {
+        accountsList.filter(u => u.role === 'Sinh viên').forEach(u => {
+          if (!participantMap.has(u.id)) {
+            const pObj = {
+              studentName: u.name,
+              studentId: u.id,
+              solvedCount: 0,
+              totalPenalty: 0,
+              problems: {}
+            };
+            probs.forEach(pId => {
+              pObj.problems[pId] = { solved: false, attempts: 0, solveTime: 0 };
+            });
+            participantMap.set(u.id, pObj);
+          }
+        });
+      }
+
+      // 2. Compute dynamic stats from classSubmissions
+      if (typeof classSubmissions !== 'undefined' && classSubmissions.length > 0) {
+        const studentSubmissionsMap = {};
+
+        classSubmissions.forEach(sub => {
+          const sId = String(sub.studentId).trim();
+          if (!sId) return;
+
+          if (!participantMap.has(sId)) {
+            const pObj = {
+              studentName: sub.studentName || sId,
+              studentId: sId,
+              solvedCount: 0,
+              totalPenalty: 0,
+              problems: {}
+            };
+            probs.forEach(pId => {
+              pObj.problems[pId] = { solved: false, attempts: 0, solveTime: 0 };
+            });
+            participantMap.set(sId, pObj);
+          }
+
+          if (!studentSubmissionsMap[sId]) studentSubmissionsMap[sId] = {};
+          if (!studentSubmissionsMap[sId][sub.problemId]) studentSubmissionsMap[sId][sub.problemId] = [];
+          studentSubmissionsMap[sId][sub.problemId].push(sub);
+        });
+
+        for (const [sId, participant] of participantMap.entries()) {
+          const studentSubs = studentSubmissionsMap[sId];
+          if (!studentSubs) continue;
+
+          probs.forEach(pId => {
+            const probSubs = studentSubs[pId];
+            if (!probSubs || probSubs.length === 0) return;
+
+            const totalAttempts = probSubs.length;
+            const acceptedSub = probSubs.find(s => 
+              (s.status === 'Accepted' || parseFloat(s.score) >= 9.0) && s.status !== 'Gian lận'
+            );
+            const cheatSub = probSubs.find(s => s.status === 'Gian lận' || parseFloat(s.score) === 0.0);
+
+            if (acceptedSub && !cheatSub) {
+              let solveTime = 25;
+              if (activeC.startTime) {
+                const diffMins = Math.max(1, Math.floor((Date.now() - new Date(activeC.startTime)) / 60000));
+                solveTime = Math.min(diffMins, activeC.durationMinutes || 90);
+              }
+              participant.problems[pId] = {
+                solved: true,
+                attempts: totalAttempts,
+                solveTime: solveTime
+              };
+            } else if (cheatSub) {
+              participant.problems[pId] = {
+                solved: false,
+                attempts: totalAttempts,
+                solveTime: 0,
+                cheat: true
+              };
+            } else {
+              participant.problems[pId] = {
+                solved: false,
+                attempts: totalAttempts,
+                solveTime: 0
+              };
+            }
+          });
+        }
+      }
+
+      // 3. Calculate solvedCount and totalPenalty
+      const updatedList = Array.from(participantMap.values());
+      updatedList.forEach(p => {
+        let solvedCount = 0;
+        let totalPenalty = 0;
+
+        probs.forEach(pId => {
+          const stat = p.problems[pId];
+          if (stat && stat.solved) {
+            solvedCount++;
+            totalPenalty += (stat.solveTime || 10) + ((stat.attempts || 1) - 1) * 20;
+          }
+        });
+
+        p.solvedCount = solvedCount;
+        p.totalPenalty = totalPenalty;
+      });
+
+      // 4. Sort standard ICPC rules
+      updatedList.sort((a, b) => {
+        if (b.solvedCount !== a.solvedCount) return b.solvedCount - a.solvedCount;
+        if (a.totalPenalty !== b.totalPenalty) return a.totalPenalty - b.totalPenalty;
+        return a.studentName.localeCompare(b.studentName);
+      });
+
+      contestParticipants = updatedList;
+    }
+
+    // Manual Refresh Leaderboard Action
+    async function refreshLeaderboardData() {
+      const icon = document.getElementById('btn-refresh-leaderboard-icon');
+      if (icon) icon.classList.add('animate-spin');
+      try {
+        await loadSubmissionsData();
+        await loadContestsData();
+      } catch (e) {}
+      rebuildLeaderboardFromSubmissions();
+      renderLeaderboard();
+      if (icon) setTimeout(() => icon.classList.remove('animate-spin'), 600);
+      showToast("Đã đồng bộ & làm mới bảng xếp hạng trực tiếp!", "success");
+    }
+
     // Dynamic ICPC Leaderboard Renderer
     function renderLeaderboard() {
+      rebuildLeaderboardFromSubmissions();
       const activeC = contests.find(c => c.id === activeContestId) || contests[0];
-      const probs = activeC.problems;
+      if (!activeC) return;
+      const probs = activeC.problems || [];
 
       const theadTr = document.getElementById('leaderboard-thead-tr');
+      if (!theadTr) return;
       theadTr.innerHTML = `
         <th class="py-3 px-4 text-center whitespace-nowrap">Hạng</th>
         <th class="py-3 px-4 whitespace-nowrap">Thí sinh</th>
@@ -4669,17 +4888,13 @@ def solve_lis(arr):
         theadTr.appendChild(th);
       });
 
-      contestParticipants.sort((a, b) => {
-        if (b.solvedCount !== a.solvedCount) return b.solvedCount - a.solvedCount;
-        return a.totalPenalty - b.totalPenalty;
-      });
-
       const tbody = document.getElementById('leaderboard-tbody');
+      if (!tbody) return;
       tbody.innerHTML = '';
 
       contestParticipants.forEach((p, idx) => {
         const tr = document.createElement('tr');
-        const isCurrent = p.studentId === currentUser.id;
+        const isCurrent = currentUser && p.studentId === currentUser.id;
         tr.id = `leaderboard-row-${p.studentId}`;
         tr.className = `transition ${isCurrent ? 'bg-indigo-950/40 border-l-4 border-indigo-500' : 'hover:bg-slate-800/40'}`;
 
@@ -4703,6 +4918,12 @@ def solve_lis(arr):
             probColsHtml += `<td class="py-3 px-3 text-center whitespace-nowrap">
               <span class="px-2 py-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold text-[12px] inline-block shadow-sm whitespace-nowrap">
                 +${stat.attempts} (${stat.solveTime}')
+              </span>
+            </td>`;
+          } else if (stat.cheat) {
+            probColsHtml += `<td class="py-3 px-3 text-center whitespace-nowrap">
+              <span class="px-2 py-1 rounded bg-rose-950 text-rose-400 border border-rose-800 font-bold text-[11px] inline-block whitespace-nowrap" title="Bị xử phạt vi phạm học thuật (0đ)">
+                0.0 (Phạt)
               </span>
             </td>`;
           } else {
@@ -4730,40 +4951,12 @@ def solve_lis(arr):
         tbody.appendChild(tr);
       });
 
-      document.getElementById('leaderboard-count').innerText = `Tổng cộng ${contestParticipants.length} thí sinh đang thi đấu`;
+      const countEl = document.getElementById('leaderboard-count');
+      if (countEl) countEl.innerText = `Tổng cộng ${contestParticipants.length} thí sinh đang thi đấu`;
     }
 
     function recordSubmissionToLeaderboard(studentName, studentId, problemId, isAccepted) {
-      let p = contestParticipants.find(x => x.studentId === studentId);
-      if (!p) {
-        p = {
-          studentName: studentName,
-          studentId: studentId,
-          solvedCount: 0,
-          totalPenalty: 0,
-          problems: {}
-        };
-        contestParticipants.push(p);
-      }
-
-      if (!p.problems[problemId]) {
-        p.problems[problemId] = { attempts: 0, solved: false, solveTime: 0 };
-      }
-
-      const probStat = p.problems[problemId];
-
-      if (!probStat.solved) {
-        probStat.attempts++;
-        if (isAccepted) {
-          probStat.solved = true;
-          const activeC = contests.find(c => c.id === activeContestId) || contests[0];
-          const elapsedMins = Math.max(1, Math.floor((Date.now() - activeC.startTime) / 60000));
-          probStat.solveTime = elapsedMins;
-          p.solvedCount++;
-          p.totalPenalty += probStat.solveTime + (probStat.attempts - 1) * 20;
-        }
-      }
-
+      rebuildLeaderboardFromSubmissions();
       renderLeaderboard();
       updateSubmissionsStatistics();
     }
@@ -5112,6 +5305,11 @@ def solve_lis(arr):
 
             classSubmissions.unshift(mappedSubmission);
             recordSubmissionToLeaderboard(currentUser.name, currentUser.id, prob.id, isAccepted);
+            if (typeof contestBroadcastChannel !== 'undefined' && contestBroadcastChannel) {
+              try {
+                contestBroadcastChannel.postMessage({ type: 'NEW_SUBMISSION', submission: mappedSubmission });
+              } catch (e) {}
+            }
 
             const isTeacher = (currentUser.role === 'Giáo viên' || currentUser.role === 'Admin');
 
@@ -5630,6 +5828,13 @@ def solve_lis(arr):
       closeGradingModal();
       renderSubmissionsTable();
       renderStudentResultsTab();
+      rebuildLeaderboardFromSubmissions();
+      renderLeaderboard();
+      if (typeof contestBroadcastChannel !== 'undefined' && contestBroadcastChannel) {
+        try {
+          contestBroadcastChannel.postMessage({ type: 'SUBMISSION_GRADED', submissionId: sub.id });
+        } catch (e) {}
+      }
     }
 
     async function rejudgeModalSubmission() {
@@ -5650,6 +5855,13 @@ def solve_lis(arr):
           }
           openGradingInspection(currentEditingSubId);
           renderSubmissionsTable();
+          rebuildLeaderboardFromSubmissions();
+          renderLeaderboard();
+          if (typeof contestBroadcastChannel !== 'undefined' && contestBroadcastChannel) {
+            try {
+              contestBroadcastChannel.postMessage({ type: 'SUBMISSION_GRADED', submissionId: currentEditingSubId });
+            } catch (e) {}
+          }
           showToast("Chấm lại thành công từ Sandbox Engine!", "success");
           return;
         }
@@ -5744,6 +5956,13 @@ def solve_lis(arr):
       renderSubmissionsTable();
       renderStudentResultsTab();
       updateSubmitButtonState();
+      rebuildLeaderboardFromSubmissions();
+      renderLeaderboard();
+      if (typeof contestBroadcastChannel !== 'undefined' && contestBroadcastChannel) {
+        try {
+          contestBroadcastChannel.postMessage({ type: 'REFRESH_LEADERBOARD' });
+        } catch (e) {}
+      }
     }
 
     function deleteSubmissionFromModal() {
@@ -6068,6 +6287,13 @@ def solve_lis(arr):
       renderComparePanels();
       renderSubmissionsTable();
       renderStudentResultsTab();
+      rebuildLeaderboardFromSubmissions();
+      renderLeaderboard();
+      if (typeof contestBroadcastChannel !== 'undefined' && contestBroadcastChannel) {
+        try {
+          contestBroadcastChannel.postMessage({ type: 'SUBMISSION_GRADED' });
+        } catch (e) {}
+      }
     }
 
     function switchFromCompareToGrading() {
@@ -6643,10 +6869,11 @@ def solve_lis(arr):
     loadContestsData();
     updateEditorStats();
 
-    // Polling tự động kiểm tra kỳ thi mới định kỳ mỗi 8 giây (hỗ trợ liên máy / liên thiết bị)
+    // Polling tự động kiểm tra kỳ thi và bài nộp mới định kỳ mỗi 5 giây (đồng bộ liên máy / liên thiết bị trên Render.com)
     setInterval(() => {
       loadContestsData();
-    }, 8000);
+      loadSubmissionsData();
+    }, 5000);
   </script>
 
 </body>
