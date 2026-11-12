@@ -32,6 +32,54 @@
   <!-- ========================================== -->
   <div id="toast-container" class="fixed top-5 right-5 z-[130] flex flex-col space-y-2 pointer-events-none"></div>
 
+  <!-- ========================================================= -->
+  <!-- FLOATING CONTEST ALERT POP-UP (KỲ THI MỚI PHÁT HÀNH)     -->
+  <!-- ========================================================= -->
+  <div id="contest-alert-banner" class="fixed top-20 right-4 sm:right-6 max-w-md w-[calc(100%-2rem)] sm:w-full z-[140] hidden transition-all duration-300 transform -translate-y-4 opacity-0 pointer-events-auto">
+    <div class="bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/95 border-2 border-amber-500/60 rounded-2xl p-4 shadow-2xl backdrop-blur-xl relative overflow-hidden ring-4 ring-amber-500/20">
+      
+      <!-- Top glowing bar -->
+      <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-rose-500 to-indigo-500 animate-pulse"></div>
+
+      <div class="flex items-start space-x-3.5">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center shrink-0 mt-0.5 shadow-lg shadow-amber-500/20">
+          <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        </div>
+
+        <div class="min-w-0 flex-1 space-y-1">
+          <div class="flex items-center justify-between gap-2">
+            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950">
+              <span class="w-1.5 h-1.5 rounded-full bg-slate-950 animate-ping"></span>
+              Kỳ thi mới vừa mở
+            </span>
+            <button onclick="dismissContestAlertBanner()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
+
+          <h4 id="alert-banner-title" class="text-xs sm:text-sm font-bold text-white break-words line-clamp-2">
+            <!-- Dynamically populated title -->
+          </h4>
+
+          <p id="alert-banner-desc" class="text-[11px] text-slate-300 leading-relaxed break-words">
+            <!-- Dynamically populated description -->
+          </p>
+
+          <div class="pt-2 flex items-center gap-2">
+            <button id="alert-banner-join-btn" onclick="joinContestFromBanner()" class="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-500/30 flex items-center gap-1.5 transition whitespace-nowrap cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span>Vào phòng thi ngay</span>
+            </button>
+            <button onclick="dismissContestAlertBanner()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition whitespace-nowrap cursor-pointer">
+              Để sau
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ========================================== -->
   <!-- TOP BRANDING BAR & DYNAMIC USER ROLE NAV   -->
   <!-- ========================================== -->
@@ -84,6 +132,42 @@
                 AT
               </div>
             </button>
+          </div>
+
+          <!-- Notification Bell Trigger & Dropdown -->
+          <div class="relative">
+            <button id="btn-header-notifications" onclick="toggleNotificationsDropdown()" title="Thông báo hệ thống & Kỳ thi mới" class="relative p-2 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-xl transition flex items-center justify-center focus:outline-none cursor-pointer">
+              <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              <!-- Unread Count Badge with pulse animation -->
+              <span id="notification-badge" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-lg ring-2 ring-slate-900 animate-pulse">0</span>
+            </button>
+
+            <!-- Notifications Dropdown Panel -->
+            <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl z-[150] overflow-hidden">
+              <div class="p-3 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                  <h4 class="text-xs font-bold text-white uppercase tracking-wider">Thông báo</h4>
+                  <span id="notification-count-tag" class="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-md text-[10px] font-bold">0 mới</span>
+                </div>
+                <button onclick="markAllNotificationsAsRead()" class="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium transition cursor-pointer">
+                  Đánh dấu đã đọc
+                </button>
+              </div>
+
+              <div id="notification-items-list" class="max-h-72 overflow-y-auto divide-y divide-slate-800/60 p-1 text-xs">
+                <!-- Dynamically populated notifications -->
+              </div>
+
+              <div class="p-2.5 bg-slate-950/60 border-t border-slate-800 text-center">
+                <button onclick="switchTab('contest'); toggleNotificationsDropdown(false);" class="text-xs text-indigo-400 hover:text-indigo-300 transition font-medium flex items-center justify-center gap-1 w-full cursor-pointer">
+                  <span>Xem tất cả kỳ thi trong Contest Arena</span>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Quick Profile Button -->
@@ -2674,13 +2758,344 @@ def solve_lis(arr):
       }
     }
 
-    // Load Contests from SQLite Backend
+    // ========================================================
+    // NOTIFICATION SYSTEM & REAL-TIME CONTEST DETECTION
+    // ========================================================
+    let notificationsList = [];
+    let notifiedContestIds = new Set();
+    let bannerContestId = null;
+    let titleFlasherInterval = null;
+    const originalDocTitle = document.title;
+    let contestBroadcastChannel = null;
+
+    // Web Audio Chime Synthesis (Zero external asset dependencies)
+    function playNotificationChime() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+
+        const now = ctx.currentTime;
+        // Tone 1: D5 (587.33 Hz)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, now);
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.2, now + 0.04);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.4);
+
+        // Tone 2: A5 (880.00 Hz)
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(880.00, now + 0.12);
+        gain2.gain.setValueAtTime(0, now + 0.12);
+        gain2.gain.linearRampToValueAtTime(0.25, now + 0.16);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.12);
+        osc2.stop(now + 0.8);
+      } catch (err) {
+        console.debug("Web Audio blocked by browser policy:", err);
+      }
+    }
+
+    function startTitleFlash(text) {
+      if (titleFlasherInterval) clearInterval(titleFlasherInterval);
+      let isOriginal = false;
+      titleFlasherInterval = setInterval(() => {
+        document.title = isOriginal ? originalDocTitle : `🔔 ${text}`;
+        isOriginal = !isOriginal;
+      }, 1000);
+    }
+
+    function stopTitleFlash() {
+      if (titleFlasherInterval) {
+        clearInterval(titleFlasherInterval);
+        titleFlasherInterval = null;
+        document.title = originalDocTitle;
+      }
+    }
+
+    window.addEventListener('focus', stopTitleFlash);
+    window.addEventListener('click', stopTitleFlash);
+
+    // Initialize BroadcastChannel for instant cross-tab notification
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        contestBroadcastChannel = new BroadcastChannel('codearena_contest_channel');
+        contestBroadcastChannel.onmessage = function(e) {
+          if (e.data && e.data.type === 'NEW_CONTEST' && e.data.contest) {
+            handleIncomingNewContest(e.data.contest, true);
+          }
+        };
+      }
+    } catch (e) {}
+
+    // Load initial notifications from localStorage
+    function loadNotifications() {
+      try {
+        const stored = localStorage.getItem('codearena_notifications');
+        if (stored) {
+          notificationsList = JSON.parse(stored);
+        } else {
+          notificationsList = [
+            {
+              id: 'notif-welcome',
+              contestId: 'CONTEST-01',
+              type: 'contest',
+              title: 'Kỳ thi: HaUI IT Contest: Vòng 1',
+              desc: 'Kỳ thi thuật toán & tối ưu mã nguồn đang diễn ra. Chúc các bạn làm bài tốt!',
+              time: new Date().toISOString(),
+              read: true
+            }
+          ];
+        }
+      } catch (e) {
+        notificationsList = [];
+      }
+
+      try {
+        const storedKnown = localStorage.getItem('codearena_known_contests');
+        if (storedKnown) {
+          const parsed = JSON.parse(storedKnown);
+          parsed.forEach(id => notifiedContestIds.add(id));
+        } else {
+          if (typeof contests !== 'undefined') {
+            contests.forEach(c => notifiedContestIds.add(c.id));
+          }
+        }
+      } catch (e) {}
+
+      renderNotificationsUI();
+    }
+
+    function saveNotificationsToStorage() {
+      try {
+        localStorage.setItem('codearena_notifications', JSON.stringify(notificationsList.slice(0, 30)));
+        localStorage.setItem('codearena_known_contests', JSON.stringify(Array.from(notifiedContestIds)));
+      } catch (e) {}
+    }
+
+    function renderNotificationsUI() {
+      const badge = document.getElementById('notification-badge');
+      const countTag = document.getElementById('notification-count-tag');
+      const listEl = document.getElementById('notification-items-list');
+
+      const unreadCount = notificationsList.filter(n => !n.read).length;
+
+      if (badge) {
+        if (unreadCount > 0) {
+          badge.innerText = unreadCount > 9 ? '9+' : unreadCount;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
+
+      if (countTag) {
+        countTag.innerText = `${unreadCount} mới`;
+      }
+
+      if (listEl) {
+        if (notificationsList.length === 0) {
+          listEl.innerHTML = `
+            <div class="py-6 text-center text-slate-500">
+              <svg class="w-8 h-8 mx-auto text-slate-600 mb-2 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <p>Chưa có thông báo mới nào</p>
+            </div>
+          `;
+          return;
+        }
+
+        listEl.innerHTML = notificationsList.map(item => `
+          <div class="p-3 hover:bg-slate-800/60 transition cursor-pointer rounded-xl ${!item.read ? 'bg-indigo-950/20 border-l-2 border-amber-500' : ''}" onclick="clickNotificationItem('${item.id}', '${item.contestId || ''}')">
+            <div class="flex items-start space-x-2.5">
+              <div class="w-7 h-7 rounded-lg ${!item.read ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-800 text-slate-400'} flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-1 mb-0.5">
+                  <h5 class="font-bold text-white truncate text-xs">${escapeHtml(item.title)}</h5>
+                  ${!item.read ? '<span class="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>' : ''}
+                </div>
+                <p class="text-[11px] text-slate-300 leading-relaxed line-clamp-2">${escapeHtml(item.desc)}</p>
+                <div class="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
+                  <span>${new Date(item.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span class="text-amber-400 font-semibold hover:underline flex items-center gap-0.5">
+                    Vào phòng thi &rarr;
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function toggleNotificationsDropdown(forceState) {
+      const dropdown = document.getElementById('notification-dropdown');
+      if (!dropdown) return;
+      if (typeof forceState === 'boolean') {
+        if (forceState) dropdown.classList.remove('hidden');
+        else dropdown.classList.add('hidden');
+      } else {
+        dropdown.classList.toggle('hidden');
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('notification-dropdown');
+      const btn = document.getElementById('btn-header-notifications');
+      if (dropdown && !dropdown.classList.contains('hidden') && btn) {
+        if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+          dropdown.classList.add('hidden');
+        }
+      }
+    });
+
+    function markAllNotificationsAsRead() {
+      notificationsList.forEach(n => n.read = true);
+      saveNotificationsToStorage();
+      renderNotificationsUI();
+      showToast("Đã đánh dấu tất cả thông báo là đã đọc!", "info");
+    }
+
+    function clickNotificationItem(notifId, contestId) {
+      const notif = notificationsList.find(n => n.id === notifId);
+      if (notif) notif.read = true;
+      saveNotificationsToStorage();
+      renderNotificationsUI();
+      toggleNotificationsDropdown(false);
+
+      if (contestId) {
+        activeContestId = contestId;
+        updateContestSelector();
+        switchTab('contest');
+        showToast("Đang chuyển đến kỳ thi...", "info");
+      }
+    }
+
+    function handleIncomingNewContest(contest, shouldAlert = true) {
+      if (!contest || !contest.id) return;
+      
+      const alreadyNotified = notifiedContestIds.has(contest.id);
+      notifiedContestIds.add(contest.id);
+      saveNotificationsToStorage();
+
+      // Ensure contest exists in local array
+      const existingIdx = contests.findIndex(c => c.id === contest.id);
+      if (existingIdx === -1) {
+        contests.unshift({
+          id: contest.id,
+          title: contest.title,
+          desc: contest.desc,
+          creator: contest.creator || 'Giảng viên HaUI',
+          startTime: contest.startTime ? new Date(contest.startTime) : new Date(),
+          durationMinutes: contest.durationMinutes || 90,
+          status: contest.status || 'Đang diễn ra',
+          rule: contest.rule || 'Luật ICPC (Penalty 20 phút/lần nộp sai)',
+          graderMode: contest.graderMode || 'hybrid',
+          problems: contest.problems || []
+        });
+        updateContestSelector();
+      }
+
+      if (alreadyNotified) return;
+
+      const newNotif = {
+        id: 'notif-' + contest.id + '-' + Date.now(),
+        contestId: contest.id,
+        type: 'contest',
+        title: `Kỳ thi mới: ${contest.title}`,
+        desc: `Giảng viên ${contest.creator || 'TS. Nguyễn Thị Hoa Huệ'} vừa phát hành kỳ thi với ${contest.problems?.length || 0} bài tập (${contest.durationMinutes || 90} phút).`,
+        time: new Date().toISOString(),
+        read: false
+      };
+      notificationsList.unshift(newNotif);
+      saveNotificationsToStorage();
+      renderNotificationsUI();
+
+      if (shouldAlert) {
+        showContestAlertBanner(contest);
+        playNotificationChime();
+        startTitleFlash("Kỳ thi mới vừa mở!");
+      }
+    }
+
+    function showContestAlertBanner(contest) {
+      bannerContestId = contest.id;
+      const banner = document.getElementById('contest-alert-banner');
+      const titleEl = document.getElementById('alert-banner-title');
+      const descEl = document.getElementById('alert-banner-desc');
+
+      if (titleEl) titleEl.innerText = contest.title;
+      if (descEl) {
+        descEl.innerHTML = `Giảng viên: <strong class="text-white">${escapeHtml(contest.creator || 'TS. Nguyễn Thị Hoa Huệ')}</strong> &bull; Thời lượng: <span class="text-amber-400 font-bold">${contest.durationMinutes || 90} phút</span> &bull; Số bài: <span class="text-emerald-400 font-bold">${contest.problems?.length || 0} bài</span>`;
+      }
+
+      if (banner) {
+        banner.classList.remove('hidden');
+        setTimeout(() => {
+          banner.classList.remove('-translate-y-4', 'opacity-0');
+          banner.classList.add('translate-y-0', 'opacity-100');
+        }, 10);
+      }
+    }
+
+    function dismissContestAlertBanner() {
+      const banner = document.getElementById('contest-alert-banner');
+      if (banner) {
+        banner.classList.remove('translate-y-0', 'opacity-100');
+        banner.classList.add('-translate-y-4', 'opacity-0');
+        setTimeout(() => banner.classList.add('hidden'), 300);
+      }
+      stopTitleFlash();
+    }
+
+    function joinContestFromBanner() {
+      dismissContestAlertBanner();
+      if (bannerContestId) {
+        activeContestId = bannerContestId;
+        updateContestSelector();
+      }
+      switchTab('contest');
+      showToast("Đã tham gia phòng thi! Chúc bạn làm bài đạt kết quả tốt nhất.", "success");
+    }
+
+    // Load Contests from SQLite Backend & Auto-Detect New Contests
     async function loadContestsData() {
       try {
         const res = await fetch(`${API_BASE_URL}/contests`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.length > 0) {
+            data.forEach(c => {
+              const formatted = {
+                id: c.id,
+                title: c.title,
+                desc: c.desc,
+                creator: c.creator,
+                startTime: new Date(c.start_time),
+                durationMinutes: c.duration_minutes,
+                status: c.status,
+                rule: c.rule,
+                graderMode: c.grader_mode,
+                problems: c.problems
+              };
+
+              // Check if contest is new
+              if (!notifiedContestIds.has(c.id)) {
+                handleIncomingNewContest(formatted, true);
+              }
+            });
+
             contests = data.map(c => ({
               id: c.id,
               title: c.title,
@@ -3296,6 +3711,18 @@ def solve_lis(arr):
           })
         }).catch(() => {});
       } catch (err) {}
+
+      // Broadcast real-time notification to all active tabs (Student / Teacher tabs)
+      if (contestBroadcastChannel) {
+        try {
+          contestBroadcastChannel.postMessage({
+            type: 'NEW_CONTEST',
+            contest: newContest
+          });
+        } catch (e) {}
+      }
+      notifiedContestIds.add(newContestId);
+      saveNotificationsToStorage();
 
       selectedProbs.forEach((pId, idx) => {
         if (problemsData[pId]) {
@@ -5382,6 +5809,8 @@ def solve_lis(arr):
     // Global ESC Key to Close Modals
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        dismissContestAlertBanner();
+        toggleNotificationsDropdown(false);
         closeLoginModal();
         closeUserProfileModal();
         closeDeleteProblemModal();
@@ -5410,6 +5839,7 @@ def solve_lis(arr):
         } catch (err) {}
       }
       updateHeaderUserUI();
+      loadNotifications();
       if (currentUser && currentUser.role === 'Giáo viên') {
         switchTab('grading');
       } else if (currentUser && currentUser.role === 'Admin') {
@@ -5421,6 +5851,7 @@ def solve_lis(arr):
     changeProblem("CA-102");
     updateContestSelector();
     updateHeaderUserUI();
+    loadNotifications();
     if (currentUser && currentUser.role === 'Giáo viên') {
       switchTab('grading');
     }
@@ -5428,6 +5859,11 @@ def solve_lis(arr):
     loadSubmissionsData();
     loadContestsData();
     updateEditorStats();
+
+    // Polling tự động kiểm tra kỳ thi mới định kỳ mỗi 8 giây (hỗ trợ liên máy / liên thiết bị)
+    setInterval(() => {
+      loadContestsData();
+    }, 8000);
   </script>
 
 </body>
