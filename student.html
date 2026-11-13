@@ -4718,12 +4718,20 @@ def solve_lis(arr):
             queueStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> <span class="whitespace-nowrap">Judge Worker Online &bull; Sẵn sàng</span>';
 
             const isSuccess = data.status === 'Success' && data.exit_code === 0;
+            const isCompileError = data.status === 'Compile Error';
+            const isRuntimeError = data.status === 'Runtime Error';
 
             // Update Terminal Header Badges
             if (termStatus) {
               if (isSuccess) {
                 termStatus.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 whitespace-nowrap";
                 termStatus.innerText = "EXIT 0 (OK)";
+              } else if (isCompileError) {
+                termStatus.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 whitespace-nowrap";
+                termStatus.innerText = "COMPILE ERROR (CE)";
+              } else if (isRuntimeError) {
+                termStatus.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 whitespace-nowrap";
+                termStatus.innerText = `EXIT ${data.exit_code} (RUNTIME ERROR)`;
               } else {
                 termStatus.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30 whitespace-nowrap";
                 termStatus.innerText = `EXIT ${data.exit_code} (${data.status})`;
@@ -4772,12 +4780,30 @@ def solve_lis(arr):
             }
 
             // Also update Verdict Card for tab Verdict
+            const cardBgBorder = isSuccess 
+              ? 'bg-indigo-950/40 border border-indigo-500/30' 
+              : (isCompileError 
+                  ? 'bg-amber-950/40 border border-amber-500/40' 
+                  : 'bg-rose-950/40 border border-rose-500/40');
+
+            const badgeBgText = isSuccess 
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+              : (isCompileError 
+                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' 
+                  : 'bg-rose-500/20 text-rose-400 border border-rose-500/30');
+
+            const statusTextDisplay = isSuccess 
+              ? 'Thực thi thành công (Success)' 
+              : (isCompileError 
+                  ? 'Lỗi biên dịch / Cú pháp (Compile Error)' 
+                  : (isRuntimeError ? 'Lỗi thực thi ngoại lệ (Runtime Error)' : data.status));
+
             verdictBody.innerHTML = `
-              <div class="p-3.5 rounded-xl ${isSuccess ? 'bg-indigo-950/40 border border-indigo-500/30' : 'bg-rose-950/40 border border-rose-500/40'} space-y-2.5">
+              <div class="p-3.5 rounded-xl ${cardBgBorder} space-y-2.5">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <span class="px-2 py-0.5 rounded text-[11px] font-bold ${isSuccess ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'} whitespace-nowrap">
-                      ${isSuccess ? 'Thực thi thành công (Success)' : data.status}
+                    <span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeBgText} whitespace-nowrap">
+                      ${statusTextDisplay}
                     </span>
                     <span class="text-xs text-slate-300 font-semibold">[${prob.name}]</span>
                   </div>
@@ -4794,8 +4820,10 @@ def solve_lis(arr):
                 ` : ''}
                 ${data.stderr ? `
                   <div>
-                    <span class="text-[11px] font-semibold text-rose-400 block mb-1">Thông báo lỗi / Ngoại lệ (Traceback):</span>
-                    <pre class="bg-slate-950 p-3 rounded-lg border border-rose-900/50 font-mono text-xs text-rose-300 overflow-x-auto whitespace-pre-wrap">${escapeHtml(data.stderr)}</pre>
+                    <span class="text-[11px] font-semibold ${isCompileError ? 'text-amber-400' : 'text-rose-400'} block mb-1">
+                      ${isCompileError ? 'Thông báo lỗi biên dịch / Cú pháp (Compiler Output):' : 'Thông báo lỗi / Ngoại lệ (Traceback):'}
+                    </span>
+                    <pre class="bg-slate-950 p-3 rounded-lg ${isCompileError ? 'border border-amber-900/50 text-amber-300' : 'border border-rose-900/50 text-rose-300'} font-mono text-xs overflow-x-auto whitespace-pre-wrap">${escapeHtml(data.stderr)}</pre>
                   </div>
                 ` : ''}
                 ${!data.stdout && !data.stderr ? `
@@ -4803,7 +4831,7 @@ def solve_lis(arr):
                 ` : ''}
               </div>
             `;
-            showToast("Đã hoàn tất chạy thử mã nguồn!", isSuccess ? "success" : "warn");
+            showToast(isSuccess ? "Đã hoàn tất chạy thử mã nguồn!" : (isCompileError ? "Lỗi biên dịch (Compile Error)! Vui lòng sửa cú pháp." : (isRuntimeError ? "Lỗi thực thi (Runtime Error)!" : data.status)), isSuccess ? "success" : "warn");
             return;
           }
         } catch (err) {
@@ -4884,6 +4912,8 @@ def solve_lis(arr):
 
             const isAccepted = newSub.status === 'Accepted';
             const isCheat = newSub.status === 'Gian lận' || newSub.similarity_rate >= plagiarismThreshold;
+            const isCompileError = newSub.status === 'Compile Error';
+            const isRuntimeError = newSub.status === 'Runtime Error';
 
             const mappedSubmission = {
               id: newSub.id,
@@ -4919,19 +4949,41 @@ def solve_lis(arr):
             const isTeacher = (currentUser.role === 'Giáo viên' || currentUser.role === 'Admin');
 
             if (isTeacher) {
+              let verdictHeaderTitle = '';
+              let verdictBadgeIcon = '';
+              let verdictCardBorder = '';
+
+              if (isAccepted) {
+                verdictHeaderTitle = 'ACCEPTED (AC) - ĐÃ LƯU BÀI NỘP';
+                verdictCardBorder = 'bg-emerald-950/50 border border-emerald-500/40';
+                verdictBadgeIcon = '<svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>';
+              } else if (isCheat) {
+                verdictHeaderTitle = 'CẢNH BÁO: TRÙNG LẶP MÃ NGUỒN';
+                verdictCardBorder = 'bg-rose-950/60 border border-rose-500/60';
+                verdictBadgeIcon = '<svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
+              } else if (isCompileError) {
+                verdictHeaderTitle = 'COMPILE ERROR (CE) - LỖI BIÊN DỊCH';
+                verdictCardBorder = 'bg-amber-950/50 border border-amber-500/40';
+                verdictBadgeIcon = '<svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>';
+              } else if (isRuntimeError) {
+                verdictHeaderTitle = 'RUNTIME ERROR (RTE) - LỖI THỰC THI';
+                verdictCardBorder = 'bg-rose-950/50 border border-rose-500/40';
+                verdictBadgeIcon = '<svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
+              } else {
+                verdictHeaderTitle = 'WRONG ANSWER (WA) - ĐÃ GHI NHẬN';
+                verdictCardBorder = 'bg-rose-950/50 border border-rose-500/40';
+                verdictBadgeIcon = '<svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+              }
+
               verdictBody.innerHTML = `
-                <div class="p-3.5 rounded-xl ${isAccepted ? 'bg-emerald-950/50 border border-emerald-500/40' : (isCheat ? 'bg-rose-950/60 border border-rose-500/60' : 'bg-rose-950/50 border border-rose-500/40')} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="p-3.5 rounded-xl ${verdictCardBorder} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div class="flex items-start sm:items-center gap-3 min-w-0 flex-1">
-                    <div class="w-10 h-10 rounded-lg ${isAccepted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'} flex items-center justify-center shrink-0">
-                      ${isAccepted 
-                        ? '<svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>' 
-                        : (isCheat 
-                            ? '<svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>' 
-                            : '<svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>')}
+                    <div class="w-10 h-10 rounded-lg ${isAccepted ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : (isCompileError ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30')} flex items-center justify-center shrink-0">
+                      ${verdictBadgeIcon}
                     </div>
                     <div class="min-w-0 flex-1">
-                      <h4 class="text-sm font-black ${isAccepted ? 'text-emerald-400' : 'text-rose-400'} uppercase tracking-wide break-words">
-                        ${isAccepted ? 'ACCEPTED (AC) - ĐÃ LƯU BÀI NỘP' : (isCheat ? 'CẢNH BÁO: TRÙNG LẶP MÃ NGUỒN' : 'WRONG ANSWER (WA) - ĐÃ GHI NHẬN')}
+                      <h4 class="text-sm font-black ${isAccepted ? 'text-emerald-400' : (isCompileError ? 'text-amber-400' : 'text-rose-400')} uppercase tracking-wide break-words">
+                        ${verdictHeaderTitle}
                       </h4>
                       <p class="text-[12px] text-slate-300 break-words mt-0.5">
                         ${newSub.ai_rubric || 'Bài làm đã nộp thành công! Kết quả chính thức & nhận xét sẽ hiển thị tại tab Báo Cáo Kết Quả.'}
@@ -5227,7 +5279,8 @@ def solve_lis(arr):
       const isCheat = sub.status === 'Gian lận' || sub.similarityRate >= plagiarismThreshold;
       const isAccepted = sub.status === 'Accepted';
       const isPartial = sub.status === 'Partial Accepted';
-      const isError = sub.status === 'Runtime Error';
+      const isCompileError = sub.status === 'Compile Error';
+      const isRuntimeError = sub.status === 'Runtime Error';
 
       if (isCheat) {
         if (scoreBadge) {
@@ -5252,6 +5305,38 @@ def solve_lis(arr):
               <span class="break-words">Tính đúng đắn & Công nhận giải thuật</span>
             </span>
             <span class="font-bold shrink-0 whitespace-nowrap ml-2">Không công nhận</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-400 gap-2">
+            <span class="flex items-center gap-1.5 min-w-0">
+              <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+              <span class="break-words">Đánh giá tối ưu độ phức tạp (Big-O)</span>
+            </span>
+            <span class="font-medium shrink-0 whitespace-nowrap ml-2">Đình chỉ thẩm định</span>
+          </div>
+        `;
+      } else if (isCompileError) {
+        if (scoreBadge) {
+          scoreBadge.className = "px-2.5 py-0.5 rounded font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono whitespace-nowrap";
+          scoreBadge.innerText = "AI: 0.0 / 10 (Compile Error)";
+        }
+        if (feedbackEl) {
+          feedbackEl.className = "text-[12px] text-amber-300 italic pt-1 border-t border-amber-900/40 break-words";
+          feedbackEl.innerText = `"${sub.aiRubric || 'Mã nguồn gặp lỗi cú pháp hoặc biên dịch (Compile Error). Hãy kiểm tra lại cú pháp trước khi nộp lại.'}"`;
+        }
+        rubricContainer.innerHTML = `
+          <div class="flex items-center justify-between text-amber-400 gap-2">
+            <span class="flex items-center gap-1.5 min-w-0">
+              <svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+              <span class="break-words">Biên dịch & Cú pháp mã nguồn</span>
+            </span>
+            <span class="font-bold shrink-0 whitespace-nowrap ml-2">Compile Error (Thất bại)</span>
+          </div>
+          <div class="flex items-center justify-between text-rose-400 gap-2">
+            <span class="flex items-center gap-1.5 min-w-0">
+              <svg class="w-3.5 h-3.5 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              <span class="break-words">Tính đúng đắn của giải thuật</span>
+            </span>
+            <span class="font-bold shrink-0 whitespace-nowrap ml-2">0 Pass (Chưa thể chạy)</span>
           </div>
           <div class="flex items-center justify-between text-slate-400 gap-2">
             <span class="flex items-center gap-1.5 min-w-0">
@@ -5300,15 +5385,15 @@ def solve_lis(arr):
         }
         if (feedbackEl) {
           feedbackEl.className = "text-[12px] text-amber-300 italic pt-1 border-t border-amber-900/40 break-words";
-          feedbackEl.innerText = `"${sub.aiRubric || (isError ? 'Mã nguồn phát sinh ngoại lệ khi thực thi.' : 'Thuật toán chưa giải quyết đúng các trường hợp kiểm thử.')}"`;
+          feedbackEl.innerText = `"${sub.aiRubric || (isRuntimeError ? 'Mã nguồn phát sinh ngoại lệ khi thực thi (Runtime Error).' : 'Thuật toán chưa giải quyết đúng các trường hợp kiểm thử.')}"`;
         }
         rubricContainer.innerHTML = `
-          <div class="flex items-center justify-between ${isError ? 'text-rose-400' : 'text-amber-400'} gap-2">
+          <div class="flex items-center justify-between ${isRuntimeError ? 'text-rose-400' : 'text-amber-400'} gap-2">
             <span class="flex items-center gap-1.5 min-w-0">
-              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isError ? 'M6 18L18 6M6 6l12 12' : 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'}"/></svg>
-              <span class="break-words">${isError ? 'Thực thi mã nguồn (Runtime)' : 'Đáp ứng yêu cầu & logic đề bài'}</span>
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isRuntimeError ? 'M6 18L18 6M6 6l12 12' : 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'}"/></svg>
+              <span class="break-words">${isRuntimeError ? 'Thực thi mã nguồn (Runtime Error)' : 'Đáp ứng yêu cầu & logic đề bài'}</span>
             </span>
-            <span class="font-bold shrink-0 whitespace-nowrap ml-2">${isError ? 'Lỗi ngoại lệ' : `Chưa đạt (${sub.testPassed})`}</span>
+            <span class="font-bold shrink-0 whitespace-nowrap ml-2">${isRuntimeError ? 'Lỗi ngoại lệ' : `Chưa đạt (${sub.testPassed})`}</span>
           </div>
           <div class="flex items-center justify-between text-amber-400 gap-2">
             <span class="flex items-center gap-1.5 min-w-0">
@@ -6873,7 +6958,8 @@ def solve_lis(arr):
             ${(() => {
               const isCheat = sub.status === 'Gian lận' || sub.similarityRate >= plagiarismThreshold;
               const isAccepted = sub.status === 'Accepted';
-              const isError = sub.status === 'Runtime Error';
+              const isCompileError = sub.status === 'Compile Error';
+              const isRuntimeError = sub.status === 'Runtime Error';
               const isPartial = sub.status === 'Partial Accepted';
 
               let rubricItemsHtml = '';
@@ -6886,6 +6972,21 @@ def solve_lis(arr):
                   <div class="flex items-center justify-between text-rose-400 gap-2">
                     <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg> <span class="break-words">Tính đúng đắn của giải thuật</span></span>
                     <span class="font-bold shrink-0 whitespace-nowrap ml-2">Không công nhận</span>
+                  </div>
+                  <div class="flex items-center justify-between text-slate-400 gap-2">
+                    <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg> <span class="break-words">Tối ưu độ phức tạp thuật toán</span></span>
+                    <span class="font-medium shrink-0 whitespace-nowrap ml-2">Đình chỉ thẩm định</span>
+                  </div>
+                `;
+              } else if (isCompileError) {
+                rubricItemsHtml = `
+                  <div class="flex items-center justify-between text-amber-400 gap-2">
+                    <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg> <span class="break-words">Cú pháp & Biên dịch mã nguồn</span></span>
+                    <span class="font-bold shrink-0 whitespace-nowrap ml-2">Compile Error (Thất bại)</span>
+                  </div>
+                  <div class="flex items-center justify-between text-rose-400 gap-2">
+                    <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg> <span class="break-words">Tính đúng đắn của giải thuật</span></span>
+                    <span class="font-bold shrink-0 whitespace-nowrap ml-2">0 Pass (Chưa thể chạy)</span>
                   </div>
                   <div class="flex items-center justify-between text-slate-400 gap-2">
                     <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg> <span class="break-words">Tối ưu độ phức tạp thuật toán</span></span>
@@ -6909,9 +7010,9 @@ def solve_lis(arr):
                 `;
               } else {
                 rubricItemsHtml = `
-                  <div class="flex items-center justify-between ${isError ? 'text-rose-400' : 'text-amber-400'} gap-2">
-                    <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isError ? 'M6 18L18 6M6 6l12 12' : 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'}"/></svg> <span class="break-words">Tính đúng đắn của giải thuật</span></span>
-                    <span class="font-bold shrink-0 whitespace-nowrap ml-2">${isError ? 'Lỗi ngoại lệ' : `${sub.testPassed} Pass`}</span>
+                  <div class="flex items-center justify-between ${isRuntimeError ? 'text-rose-400' : 'text-amber-400'} gap-2">
+                    <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isRuntimeError ? 'M6 18L18 6M6 6l12 12' : 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'}"/></svg> <span class="break-words">${isRuntimeError ? 'Thực thi mã nguồn (Runtime Error)' : 'Tính đúng đắn của giải thuật'}</span></span>
+                    <span class="font-bold shrink-0 whitespace-nowrap ml-2">${isRuntimeError ? 'Lỗi ngoại lệ' : `${sub.testPassed} Pass`}</span>
                   </div>
                   <div class="flex items-center justify-between text-amber-400 gap-2">
                     <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> <span class="break-words">Tối ưu độ phức tạp thuật toán</span></span>
@@ -6924,7 +7025,7 @@ def solve_lis(arr):
                 `;
               }
 
-              const badgeColor = isCheat ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : (isAccepted ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border-amber-500/30');
+              const badgeColor = isCheat ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' : (isAccepted ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : (isCompileError ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30'));
 
               return `
                 <div class="bg-indigo-950/40 border border-indigo-500/40 rounded-2xl p-5 shadow-xl space-y-3 text-xs">

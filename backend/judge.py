@@ -325,9 +325,14 @@ def execute_code_docker(code: str, language: str = "python", stdin: str = "", ti
 
         stdout = proc.stdout.strip()
         stderr = proc.stderr.strip()
-        status_text = "Success" if proc.returncode == 0 else "Runtime Error"
         if "PermissionError: CodeArena Sandbox" in stderr:
             status_text = "Security Violation"
+        elif "SyntaxError:" in stderr or "IndentationError:" in stderr or "TabError:" in stderr or "Compile Error" in stderr:
+            status_text = "Compile Error"
+        elif proc.returncode == 0:
+            status_text = "Success"
+        else:
+            status_text = "Runtime Error"
 
         return {
             "stdout": stdout,
@@ -475,6 +480,8 @@ def execute_code_native_jail(code: str, language: str = "python", stdin: str = "
 
         if "PermissionError: CodeArena Sandbox" in stderr:
             status_text = "Security Violation"
+        elif "SyntaxError:" in stderr or "IndentationError:" in stderr or "TabError:" in stderr or "Compile Error" in stderr:
+            status_text = "Compile Error"
         elif proc.returncode == 0:
             status_text = "Success"
         else:
@@ -499,23 +506,223 @@ def execute_code_native_jail(code: str, language: str = "python", stdin: str = "
             "status": "Sandbox Error"
         }
 
+def check_compilation(code: str, language: str = "python") -> Optional[dict]:
+    """
+    Kiểm tra biên dịch và cú pháp tĩnh trước khi đưa vào Sandbox.
+    Phân biệt rõ ràng giữa Compile Error (CE) và Runtime Error (RTE):
+    - Python: Sử dụng compile() và ast.parse() để bắt SyntaxError, IndentationError, TabError
+    - C++: Biên dịch bằng g++ / clang++ (nếu có) hoặc kiểm tra cú pháp cấu trúc C++.
+    Nếu có lỗi biên dịch, trả về kết quả chi tiết với status="Compile Error".
+    Nếu hợp lệ, trả về None (hoặc dict mang binary_path cho C++).
+    """
+    lang_lower = (language or "python").lower().strip()
+
+    if lang_lower in ["python", "python 3", "py"]:
+        try:
+            compile(code, "<submission>", "exec")
+            return None
+        except (SyntaxError, IndentationError, TabError) as e:
+            line_no = e.lineno or 1
+            col_offset = e.offset or 1
+            error_line = (e.text or "").strip()
+            error_type = type(e).__name__
+            error_msg = e.msg or "Lỗi cú pháp không hợp lệ"
+
+            formatted_stderr = (
+                f"Compile Error (Lỗi biên dịch / Cú pháp Python):\n"
+                f'  File "<submission>", line {line_no}\n'
+                f"    {error_line}\n"
+                f"    {' ' * max(0, col_offset - 1)}^\n"
+                f"{error_type}: {error_msg}\n\n"
+                f"Gợi ý sửa lỗi: Vui lòng kiểm tra lại dấu hai chấm (:), thụt đầu dòng (indentation), hoặc dấu ngoặc chưa đóng."
+            )
+            return {
+                "stdout": "",
+                "stderr": formatted_stderr,
+                "exit_code": 1,
+                "runtime_ms": 0.0,
+                "memory_mb": 0.0,
+                "status": "Compile Error"
+            }
+        except Exception as e:
+            return {
+                "stdout": "",
+                "stderr": f"Compile Error (Lỗi biên dịch Python): {str(e)}",
+                "exit_code": 1,
+                "runtime_ms": 0.0,
+                "memory_mb": 0.0,
+                "status": "Compile Error"
+            }
+
+    elif lang_lower in ["cpp", "c++", "cpp 17", "c++ 17", "c++17"]:
+        import shutil
+        import tempfile
+        compiler = shutil.which("g++") or shutil.which("clang++")
+        if compiler:
+            try:
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.cpp', delete=False, encoding='utf-8') as tf:
+                    tf.write(code)
+                    src_path = tf.name
+
+                bin_path = src_path + (".exe" if sys.platform == "win32" else ".out")
+                compile_proc = subprocess.run(
+                    [compiler, "-O2", "-std=c++17", "-Wall", src_path, "-o", bin_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=10.0,
+                    encoding="utf-8",
+                    errors="replace"
+                )
+
+                try:
+                    if os.path.exists(src_path):
+                        os.remove(src_path)
+                except Exception:
+                    pass
+
+                if compile_proc.returncode != 0:
+                    try:
+                        if os.path.exists(bin_path):
+                            os.remove(bin_path)
+                    except Exception:
+                        pass
+                    return {
+                        "stdout": "",
+                        "stderr": f"Compile Error (Lỗi biên dịch C++ qua {os.path.basename(compiler)}):\n{compile_proc.stderr.strip()}",
+                        "exit_code": 1,
+                        "runtime_ms": 0.0,
+                        "memory_mb": 0.0,
+                        "status": "Compile Error"
+                    }
+                else:
+                    return {
+                        "binary_path": bin_path,
+                        "status": "Compiled"
+                    }
+            except subprocess.TimeoutExpired:
+                return {
+                    "stdout": "",
+                    "stderr": "Compile Error: Quá thời gian biên dịch mã nguồn C++ (Compilation Timeout > 10s).",
+                    "exit_code": 1,
+                    "runtime_ms": 0.0,
+                    "memory_mb": 0.0,
+                    "status": "Compile Error"
+                }
+            except Exception as e:
+                return {
+                    "stdout": "",
+                    "stderr": f"Compile Error (Lỗi trình biên dịch): {str(e)}",
+                    "exit_code": 1,
+                    "runtime_ms": 0.0,
+                    "memory_mb": 0.0,
+                    "status": "Compile Error"
+                }
+        else:
+            # Compiler not installed: validate C++ syntax heuristics
+            syntax_issues = []
+            if "main" not in code:
+                syntax_issues.append("Thiếu hàm khởi tạo 'int main()'")
+            open_b = code.count('{')
+            close_b = code.count('}')
+            if open_b != close_b:
+                syntax_issues.append(f"Không khớp cặp dấu ngoặc nhọn: {open_b} '{{' và {close_b} '}}'")
+            open_p = code.count('(')
+            close_p = code.count(')')
+            if open_p != close_p:
+                syntax_issues.append(f"Không khớp cặp dấu ngoặc tròn: {open_p} '(' và {close_p} ')'")
+
+            detail_msg = "; ".join(syntax_issues) if syntax_issues else "Trình biên dịch C++ (g++) hiện chưa được cấu hình trong PATH máy chủ."
+            return {
+                "stdout": "",
+                "stderr": f"Compile Error (Lỗi biên dịch C++):\n{detail_msg}\n\n* Khuyến nghị: Chọn ngôn ngữ Python 3 để chạy trực tiếp trên Sandbox máy chủ.",
+                "exit_code": 1,
+                "runtime_ms": 0.0,
+                "memory_mb": 0.0,
+                "status": "Compile Error"
+            }
+
+    return None
+
+def execute_compiled_binary(bin_path: str, stdin: str = "", timeout: Optional[float] = None) -> dict:
+    """Thực thi file nhị phân C++ đã biên dịch thành công trong môi trường giới hạn tài nguyên"""
+    if timeout is None:
+        timeout = get_current_timeout()
+    mem_limit = get_current_memory_limit()
+    t_start = time.perf_counter()
+
+    try:
+        proc = subprocess.Popen(
+            [bin_path],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
+
+        if stdin:
+            try:
+                proc.stdin.write(stdin)
+                proc.stdin.flush()
+                proc.stdin.close()
+            except Exception:
+                pass
+
+        try:
+            stdout_data, stderr_data = proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            t_elapsed = (time.perf_counter() - t_start) * 1000.0
+            return {
+                "stdout": "",
+                "stderr": f"Lỗi: Quá thời gian thực thi (Time Limit Exceeded - vượt quá {timeout}s).",
+                "exit_code": -1,
+                "runtime_ms": round(t_elapsed, 1),
+                "memory_mb": 15.0,
+                "status": "Time Limit Exceeded"
+            }
+
+        t_elapsed = (time.perf_counter() - t_start) * 1000.0
+        stdout = stdout_data.strip()
+        stderr = stderr_data.strip()
+
+        if proc.returncode == 0:
+            status_text = "Success"
+        else:
+            status_text = "Runtime Error"
+
+        return {
+            "stdout": stdout,
+            "stderr": stderr,
+            "exit_code": proc.returncode,
+            "runtime_ms": round(t_elapsed, 1),
+            "memory_mb": 15.0,
+            "status": status_text
+        }
+    except Exception as e:
+        return {
+            "stdout": "",
+            "stderr": f"Lỗi thực thi C++: {str(e)}",
+            "exit_code": -1,
+            "runtime_ms": 0.0,
+            "memory_mb": 0.0,
+            "status": "Runtime Error"
+        }
+    finally:
+        try:
+            if os.path.exists(bin_path):
+                os.remove(bin_path)
+        except Exception:
+            pass
+
 def execute_code(code: str, language: str = "python", stdin: str = "", timeout: Optional[float] = None) -> dict:
     """
     Thực thi mã nguồn an toàn qua hệ thống Sandbox đa lớp (Multi-Layer Isolated Sandbox Engine):
-    1. Kiểm tra tĩnh AST (AST Static Security Audit): Phát hiện module cấm (ctypes, subprocess, ...).
-    2. Chạy trên Docker Sandbox nếu Docker Engine đang hoạt động và không bị tắt bởi cấu hình.
-    3. Ngược lại, kích hoạt Native Process Jail với chặn mạng (no network) và đo RAM/CPU thực tế.
+    1. Kiểm tra an ninh tĩnh (AST Pre-Execution Security Audit)
+    2. Kiểm tra biên dịch & cú pháp (Compilation & Syntax Check -> phát hiện Compile Error)
+    3. Điều phối thực thi: Docker Sandbox hoặc Native Process Jail (phát hiện Runtime Error, TLE, MLE)
     """
-    if language.lower() not in ["python", "python 3", "py"]:
-        return {
-            "stdout": "",
-            "stderr": "Trình biên dịch C++ (g++) hiện chưa được cấu hình trong PATH máy chủ. Hệ thống ưu tiên chạy trực tiếp Python 3 với Sandbox an toàn.",
-            "exit_code": 1,
-            "runtime_ms": 0.0,
-            "memory_mb": 0.0,
-            "status": "Compiler Not Available"
-        }
-
     # 1. Quét an ninh tĩnh bằng AST
     sec_violation = check_code_security(code)
     if sec_violation:
@@ -528,7 +735,16 @@ def execute_code(code: str, language: str = "python", stdin: str = "", timeout: 
             "status": "Security Violation"
         }
 
-    # 2. Điều phối engine thực thi: Docker vs Native Process Jail
+    # 2. Kiểm tra biên dịch & cú pháp (Phát hiện Compile Error trước khi chạy)
+    comp_res = check_compilation(code, language)
+    if comp_res:
+        if comp_res.get("status") == "Compile Error":
+            return comp_res
+        elif comp_res.get("status") == "Compiled" and "binary_path" in comp_res:
+            # Thực thi file binary C++ đã biên dịch
+            return execute_compiled_binary(comp_res["binary_path"], stdin=stdin, timeout=timeout)
+
+    # 3. Điều phối engine thực thi: Docker vs Native Process Jail
     use_docker = (get_engine_mode() != "process_jail") and is_docker_available()
     if use_docker:
         return execute_code_docker(code=code, language=language, stdin=stdin, timeout=timeout)
@@ -669,12 +885,19 @@ def analyze_code_semantics(
     calculated_ai_score = max(0.0, min(10.0, calculated_ai_score))
 
     # 7. Tạo nhận xét tổng hợp
-    if pass_ratio == 1.0:
+    if exec_res.get("status") == "Compile Error":
+        summary = f"[Lỗi biên dịch - Compile Error] Mã nguồn gặp lỗi cú pháp (SyntaxError / Compilation Error): {exec_res.get('stderr', '')[:140]}. Vui lòng kiểm tra lại cấu trúc cú pháp trước khi chạy."
+        calculated_ai_score = 0.0
+    elif pass_ratio == 1.0:
         summary = f"[Đạt chuẩn] Vượt qua {passed_tests}/{total_tests} test cases. Độ phức tạp thời gian: {time_comp}, không gian: {space_comp}. " + " ".join(notes)
     elif pass_ratio > 0.0:
         summary = f"[Chấp nhận một phần] Vượt qua {passed_tests}/{total_tests} test cases. Độ phức tạp: {time_comp}. Cần xử lý thêm các trường hợp kiểm thử đặc biệt."
     elif exec_res.get("exit_code") != 0:
-        summary = f"[Lỗi thực thi - Runtime Error] Mã nguồn phát sinh ngoại lệ khi chạy: {exec_res.get('stderr', '')[:120]}. Đề xuất kiểm tra kiểu dữ liệu và chỉ số mảng."
+        if "SyntaxError:" in exec_res.get("stderr", "") or "IndentationError:" in exec_res.get("stderr", "") or "Compile Error" in exec_res.get("stderr", ""):
+            summary = f"[Lỗi biên dịch - Compile Error] Mã nguồn gặp lỗi cú pháp: {exec_res.get('stderr', '')[:120]}."
+            calculated_ai_score = 0.0
+        else:
+            summary = f"[Lỗi thực thi - Runtime Error] Mã nguồn phát sinh ngoại lệ khi chạy: {exec_res.get('stderr', '')[:120]}. Đề xuất kiểm tra kiểu dữ liệu và chỉ số mảng."
     else:
         summary = f"[Chưa đạt - Wrong Answer] Thuật toán chưa khớp với kết quả kiểm thử chuẩn ({passed_tests}/{total_tests} passed). Ước tính độ phức tạp: {time_comp}. Cần rà soát lại công thức toán học/logic."
 
@@ -796,6 +1019,21 @@ def evaluate_submission(
 
     # 2. Chạy kiểm tra sơ bộ cú pháp và ngoại lệ
     exec_res = execute_code(code, language=language, stdin="", timeout=3.0)
+
+    if exec_res["status"] == "Compile Error":
+        return {
+            "status": "Compile Error",
+            "test_passed": f"0/{len(tests) if tests else 3}",
+            "runtime": "0.0 ms",
+            "memory": "0.0 MB",
+            "score": "0.0",
+            "ai_score": "0.0",
+            "ai_rubric": f"[Không đạt - Lỗi biên dịch (Compile Error)] {exec_res['stderr'][:180]}",
+            "ai_feedback": f"[Lỗi biên dịch - Compile Error] Mã nguồn gặp lỗi cú pháp hoặc biên dịch không thành công:\n{exec_res['stderr']}",
+            "similarity_rate": max_sim,
+            "stdout": "",
+            "stderr": exec_res["stderr"]
+        }
 
     if exec_res["status"] == "Time Limit Exceeded":
         return {
@@ -920,6 +1158,20 @@ except Exception as e:
                 "stdout": "",
                 "stderr": harness_res["stderr"]
             }
+        elif harness_res["status"] == "Compile Error":
+            return {
+                "status": "Compile Error",
+                "test_passed": f"0/{total_tests}",
+                "runtime": "0.0 ms",
+                "memory": "0.0 MB",
+                "score": "0.0",
+                "ai_score": "0.0",
+                "ai_rubric": f"[Không đạt - Lỗi biên dịch (Compile Error)] {harness_res['stderr'][:180]}",
+                "ai_feedback": f"[Lỗi biên dịch - Compile Error] {harness_res['stderr']}",
+                "similarity_rate": max_sim,
+                "stdout": "",
+                "stderr": harness_res["stderr"]
+            }
         elif harness_res["status"] == "Security Violation":
             return {
                 "status": "Security Violation",
@@ -940,6 +1192,9 @@ except Exception as e:
                 passed_count = int(match.group(1))
             else:
                 passed_count = 0
+            err_matches = re.findall(r'CASE_\d+_ERR:\s*(.+)', harness_res["stdout"])
+            if err_matches:
+                test_errors.extend(err_matches)
         else:
             test_errors.append(harness_res["stderr"])
             match = re.search(r'CODEARENA_PASSED:\s*(\d+)', harness_res["stdout"])
@@ -959,11 +1214,21 @@ except Exception as e:
     pass_ratio = passed_count / total_tests if total_tests > 0 else 0.0
     score_val = str(round(pass_ratio * 10.0, 1))
 
+    has_runtime_error = bool(test_errors) or (exec_res.get("exit_code") != 0 and exec_res.get("status") == "Runtime Error") or (locals().get("harness_res", {}).get("exit_code") != 0 and locals().get("harness_res", {}).get("status") == "Runtime Error")
+
     if passed_count == total_tests:
         status_verdict = "Accepted"
         is_correct = True
     elif passed_count > 0:
         status_verdict = "Partial Accepted"
+        is_correct = False
+    elif exec_res.get("status") == "Compile Error" or "SyntaxError:" in exec_res.get("stderr", "") or "IndentationError:" in exec_res.get("stderr", "") or "Compile Error" in exec_res.get("stderr", ""):
+        status_verdict = "Compile Error"
+        score_val = "0.0"
+        is_correct = False
+    elif has_runtime_error and passed_count == 0:
+        status_verdict = "Runtime Error"
+        score_val = "0.0"
         is_correct = False
     elif exec_res["exit_code"] != 0:
         status_verdict = "Runtime Error"
@@ -975,12 +1240,17 @@ except Exception as e:
         is_correct = False
 
     # 5. Phân tích ngữ nghĩa AI độc lập (Native Semantic AI Engine)
+    exec_res_for_ai = exec_res if status_verdict != "Runtime Error" else {
+        "status": "Runtime Error",
+        "exit_code": 1,
+        "stderr": "; ".join(test_errors) if test_errors else exec_res.get("stderr", "Lỗi thực thi trong hàm xử lý")
+    }
     semantic_ai = analyze_code_semantics(
         code=code,
         problem_id=problem_id,
         passed_tests=passed_count,
         total_tests=total_tests,
-        exec_res=exec_res
+        exec_res=exec_res_for_ai
     )
     ai_score_val = semantic_ai["ai_score"]
     ai_rubric = semantic_ai["summary"]
