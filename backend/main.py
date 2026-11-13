@@ -47,7 +47,8 @@ from backend.models import (
 )
 from backend.auth import verify_password
 from backend.config import get_ai_config, save_gemini_key
-from backend.judge import execute_code, evaluate_submission, get_sandbox_status
+from backend.judge import execute_code, evaluate_submission, get_sandbox_status, get_sandbox_config, update_sandbox_config
+from backend.queue_manager import test_redis_connection, get_queue_stats, execute_queued_task
 from backend.problems import PROBLEMS_DATA
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -120,7 +121,24 @@ async def health_check():
 
 @app.get("/api/sandbox/status", summary="Kiểm tra trạng thái Sandbox & các giới hạn an toàn")
 async def get_sandbox_info():
-    return get_sandbox_status()
+    return get_sandbox_config()
+
+@app.get("/api/sandbox/config", summary="Lấy toàn bộ cấu hình tài nguyên Sandbox & Redis Queue")
+async def get_sandbox_cfg():
+    return get_sandbox_config()
+
+@app.put("/api/sandbox/config", summary="Cập nhật cấu hình tài nguyên Sandbox & Redis Queue")
+async def set_sandbox_cfg(req: dict):
+    return update_sandbox_config(req)
+
+@app.get("/api/queue/stats", summary="Thống kê hàng đợi Worker & Redis thời gian thực")
+async def get_queue_info():
+    return get_queue_stats()
+
+@app.post("/api/queue/test-redis", summary="Kiểm tra kết nối Redis URL")
+async def test_redis_conn(req: dict):
+    url = req.get("redis_url", "")
+    return test_redis_connection(url)
 
 @app.get("/api/stats", response_model=StatsResponse, summary="Thống kê tài khoản hệ thống")
 async def get_system_stats():
@@ -189,13 +207,13 @@ async def login(req: LoginRequest):
 @app.post("/api/judge/run", response_model=JudgeRunResponse, summary="Chạy thử code trên Sandbox (Run Code)")
 async def judge_run(req: JudgeRunRequest):
     """
-    Executes Python source code in an isolated subprocess with stdout/stderr capture.
+    Executes Python source code in an isolated subprocess with stdout/stderr capture via Async Task Queue.
     """
-    res = execute_code(
+    res = await execute_queued_task(
+        execute_code,
         code=req.code,
         language=req.language,
-        stdin=req.stdin or "",
-        timeout=3.0
+        stdin=req.stdin or ""
     )
     return res
 
@@ -220,8 +238,9 @@ async def judge_submit(req: JudgeSubmitRequest):
     # 1. Fetch previous submissions for plagiarism check
     existing_codes = list_all_codes_for_problem(req.problem_id)
     
-    # 2. Evaluate
-    verdict = evaluate_submission(
+    # 2. Evaluate via Async Task Queue
+    verdict = await execute_queued_task(
+        evaluate_submission,
         problem_id=req.problem_id,
         code=req.code,
         language=req.language,

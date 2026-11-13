@@ -110,6 +110,10 @@
                 <svg class="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 <span id="ai-engine-label">AI: Khởi tạo...</span>
               </button>
+              <button onclick="openSandboxConfigModal()" id="header-sandbox-btn" title="Cấu hình Tài nguyên Sandbox (RAM, CPU, Chặn mạng) & Hàng đợi Redis (Giáo viên / Admin)" class="teacher-admin-only hidden items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30 whitespace-nowrap transition cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                <span id="header-sandbox-label">Sandbox: 256MB</span>
+              </button>
             </div>
             <p class="text-[11px] sm:text-[12px] text-slate-400 hidden sm:block truncate max-w-[340px] md:max-w-[480px]">Chấm bài Sandbox tự động & AI Đánh giá yêu cầu đề bài</p>
           </div>
@@ -553,6 +557,10 @@
                 <span id="queue-status" class="flex items-center gap-1.5 text-slate-400 min-w-0">
                   <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> <span id="judge-worker-badge-text" class="truncate sm:whitespace-normal" title="Sandbox cách ly an toàn: Giới hạn 256MB RAM, Timeout 3s, Chặn kết nối mạng">Judge Worker Online &bull; Sandbox (256MB &bull; Chặn mạng)</span>
                 </span>
+                <button onclick="openSandboxConfigModal()" id="btn-open-sandbox-cfg" title="Cấu hình tài nguyên Sandbox (RAM, CPU, Chặn mạng) & Hàng đợi Redis (Giáo viên / Admin)" class="teacher-admin-only hidden px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-white border border-slate-700 items-center gap-1 transition cursor-pointer shrink-0">
+                  <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <span>Cấu hình Sandbox</span>
+                </button>
               </div>
               
               <div class="flex items-center space-x-2.5">
@@ -1679,6 +1687,18 @@ def solve_lis(arr):
           subtabVerdictText.innerText = "Trạng thái Nộp bài";
         }
       }
+
+      // Phân quyền hiển thị các nút Cấu hình Sandbox & Hàng đợi (teacher-admin-only)
+      const isTeacherOrAdmin = (role === 'Giáo viên' || role === 'Admin');
+      document.querySelectorAll('.teacher-admin-only').forEach(el => {
+        if (isTeacherOrAdmin) {
+          el.classList.remove('hidden');
+          el.style.display = 'inline-flex';
+        } else {
+          el.classList.add('hidden');
+          el.style.display = 'none';
+        }
+      });
 
       // 2. CẬP NHẬT THÔNG TIN NGƯỜI DÙNG Ở HEADER
       if (isGuest) {
@@ -5572,6 +5592,163 @@ def solve_lis(arr):
       closeAIConfigModal();
     }
 
+    // =========================================================================
+    // MODAL 12: CẤU HÌNH TÀI NGUYÊN SANDBOX & HÀNG ĐỢI REDIS (GV & ADMIN)
+    // =========================================================================
+    async function openSandboxConfigModal() {
+      if (!checkTeacherOrAdminAccess()) return;
+      const modal = document.getElementById('sandbox-config-modal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/sandbox/config`);
+        if (res.ok) {
+          const data = await res.json();
+          
+          const engineText = document.getElementById('cfg-active-engine-text');
+          if (engineText) engineText.innerText = data.label || data.engine;
+
+          const dockerPill = document.getElementById('cfg-docker-pill');
+          if (dockerPill) {
+            dockerPill.innerText = data.docker_available ? "Docker: Sẵn sàng" : "Docker: Không khả dụng (Dùng Process Jail)";
+            dockerPill.className = data.docker_available 
+              ? "px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0"
+              : "px-2 py-0.5 rounded text-[11px] font-bold font-mono bg-slate-800 text-slate-400 border border-slate-700 shrink-0";
+          }
+
+          const inputRam = document.getElementById('cfg-input-ram');
+          if (inputRam) inputRam.value = String(data.memory_limit_mb || 256);
+
+          const inputTimeout = document.getElementById('cfg-input-timeout');
+          if (inputTimeout) inputTimeout.value = String(data.time_limit_sec || 3.0);
+
+          const inputCpu = document.getElementById('cfg-input-cpu');
+          if (inputCpu) inputCpu.value = String(data.cpu_limit || 1.0);
+
+          const inputEngineMode = document.getElementById('cfg-input-engine-mode');
+          if (inputEngineMode) inputEngineMode.value = data.engine_mode || "auto";
+
+          const inputNetBlock = document.getElementById('cfg-input-net-block');
+          if (inputNetBlock) inputNetBlock.checked = Boolean(data.network_blocked);
+
+          const inputWorkers = document.getElementById('cfg-input-workers');
+          if (inputWorkers) inputWorkers.value = String(data.queue_workers || 4);
+
+          if (data.queue) {
+            const inputRedis = document.getElementById('cfg-input-redis-url');
+            if (inputRedis && !inputRedis.value && data.queue.redis_url) {
+              inputRedis.value = data.queue.redis_url;
+            }
+
+            const redisBadge = document.getElementById('cfg-redis-status-badge');
+            if (redisBadge) {
+              if (data.queue.redis_connected) {
+                redisBadge.innerText = "Redis: Đã kết nối";
+                redisBadge.className = "px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+              } else {
+                redisBadge.innerText = "In-Memory Async Queue (Sẵn sàng)";
+                redisBadge.className = "px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30";
+              }
+            }
+
+            const pEl = document.getElementById('cfg-stat-pending');
+            if (pEl) pEl.innerText = data.queue.pending_jobs || 0;
+            const prEl = document.getElementById('cfg-stat-processing');
+            if (prEl) prEl.innerText = data.queue.processing_jobs || 0;
+            const cEl = document.getElementById('cfg-stat-completed');
+            if (cEl) cEl.innerText = data.queue.completed_jobs || 0;
+          }
+        }
+      } catch (err) {
+        console.warn("Lỗi tải cấu hình Sandbox:", err);
+      }
+    }
+
+    function closeSandboxConfigModal() {
+      const modal = document.getElementById('sandbox-config-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    async function testRedisConnectionFromModal() {
+      const urlEl = document.getElementById('cfg-input-redis-url');
+      const url = urlEl ? urlEl.value.trim() : '';
+      if (!url) {
+        showToast("Vui lòng nhập Redis URL để kiểm tra!", "warn");
+        return;
+      }
+      showToast("Đang kiểm tra kết nối tới Redis Server...", "warn");
+      try {
+        const res = await fetch(`${API_BASE_URL}/queue/test-redis`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ redis_url: url })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(data.message, "success");
+          const badge = document.getElementById('cfg-redis-status-badge');
+          if (badge) {
+            badge.innerText = "Redis: Kết nối tốt";
+            badge.className = "px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+          }
+        } else {
+          showToast(data.message, "error");
+        }
+      } catch (err) {
+        showToast("Không thể gửi lệnh kiểm tra Redis tới máy chủ!", "error");
+      }
+    }
+
+    async function saveSandboxConfigFromModal() {
+      const ram = parseInt(document.getElementById('cfg-input-ram')?.value || "256");
+      const timeout = parseFloat(document.getElementById('cfg-input-timeout')?.value || "3.0");
+      const cpu = parseFloat(document.getElementById('cfg-input-cpu')?.value || "1.0");
+      const engineMode = document.getElementById('cfg-input-engine-mode')?.value || "auto";
+      const netBlocked = document.getElementById('cfg-input-net-block')?.checked ?? true;
+      const workers = parseInt(document.getElementById('cfg-input-workers')?.value || "4");
+      const redisUrl = document.getElementById('cfg-input-redis-url')?.value.trim() || "";
+
+      const payload = {
+        memory_limit_mb: ram,
+        time_limit_sec: timeout,
+        cpu_limit: cpu,
+        engine_mode: engineMode,
+        network_blocked: netBlocked,
+        queue_workers: workers,
+        redis_url: redisUrl
+      };
+
+      const btn = document.getElementById('btn-save-sandbox-cfg');
+      if (btn) btn.disabled = true;
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/sandbox/config`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          showToast(`Đã lưu cấu hình: RAM ${data.memory_limit_mb}MB, Timeout ${data.time_limit_sec}s!`, "success");
+          closeSandboxConfigModal();
+          loadSandboxStatus();
+          return;
+        }
+      } catch (err) {
+        console.warn("Lỗi lưu cấu hình Sandbox:", err);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+      showToast("Đã lưu cấu hình tài nguyên Sandbox!", "success");
+      closeSandboxConfigModal();
+      loadSandboxStatus();
+    }
+
     function clearEditorCode() {
       if (confirm("Bạn có chắc chắn muốn xóa toàn bộ mã nguồn trên trình soạn thảo không?")) {
         const codeInput = document.getElementById('code-input');
@@ -6082,8 +6259,12 @@ def solve_lis(arr):
           if (badgeEl) {
             badgeEl.innerHTML = `Judge Worker Online &bull; ${escapeHtml(data.label)}`;
             badgeEl.title = data.docker_available 
-              ? "Chế độ: Docker Sandbox Container thật. Giới hạn 256MB RAM cứng, 1 Core CPU, Chặn toàn bộ kết nối mạng (--net=none)."
-              : "Chế độ: Native Process Jail Sandbox. Giới hạn 256MB RAM thời gian thực, Timeout 3s, Chặn hoàn toàn kết nối mạng và vô hiệu hóa các lệnh can thiệp OS.";
+              ? `Chế độ: Docker Sandbox Container thật. Giới hạn ${data.memory_limit_mb || 256}MB RAM cứng, ${data.cpu_limit || 1.0} Core CPU, Chặn toàn bộ kết nối mạng (--net=none).`
+              : `Chế độ: Native Process Jail Sandbox. Giới hạn ${data.memory_limit_mb || 256}MB RAM thời gian thực, Timeout ${data.time_limit_sec || 3}s, Chặn hoàn toàn kết nối mạng và vô hiệu hóa các lệnh can thiệp OS.`;
+          }
+          const headerPill = document.getElementById('header-sandbox-label');
+          if (headerPill) {
+            headerPill.innerText = `Sandbox: ${data.memory_limit_mb || 256}MB`;
           }
         }
       } catch (e) {}

@@ -75,13 +75,28 @@ def compute_similarity(code1: str, code2: str) -> float:
 # ========================================================
 # SANDBOX CONFIGURATION & RESOURCE LIMITS
 # ========================================================
-MEMORY_LIMIT_MB = 256.0
-TIME_LIMIT_SECONDS = 3.0
+from backend.config import DEFAULT_SANDBOX_CONFIG
+from backend.queue_manager import get_queue_stats, update_redis_config
 
-SANDBOX_PRELUDE = """# CodeArena In-Process Security Sandbox Prelude
-import sys
+ACTIVE_SANDBOX_CONFIG = dict(DEFAULT_SANDBOX_CONFIG)
 
-# 1. Chặn kết nối mạng hoàn toàn (Network Isolation - No Sockets, No HTTP, No DNS)
+def get_current_memory_limit() -> float:
+    return float(ACTIVE_SANDBOX_CONFIG.get("memory_limit_mb", 256.0))
+
+def get_current_timeout() -> float:
+    return float(ACTIVE_SANDBOX_CONFIG.get("time_limit_sec", 3.0))
+
+def is_network_blocked() -> bool:
+    return bool(ACTIVE_SANDBOX_CONFIG.get("network_blocked", True))
+
+def get_engine_mode() -> str:
+    return str(ACTIVE_SANDBOX_CONFIG.get("engine_mode", "auto"))
+
+def build_sandbox_prelude() -> str:
+    """Xây dựng đoạn mã bảo vệ nội tại (Security Prelude) tuân theo cấu hình an toàn động"""
+    prelude = "# CodeArena In-Process Security Sandbox Prelude\nimport sys\n"
+    if is_network_blocked():
+        prelude += """# 1. Chặn kết nối mạng hoàn toàn (Network Isolation - No Sockets, No HTTP, No DNS)
 try:
     import socket
     class _CodeArenaBlockedSocket:
@@ -94,8 +109,8 @@ try:
     socket.gethostbyname_ex = _CodeArenaBlockedSocket
 except Exception:
     pass
-
-# 2. Chặn các hàm gọi lệnh hệ thống (OS/Subprocess Execution Block)
+"""
+    prelude += """# 2. Chặn các hàm gọi lệnh hệ thống (OS/Subprocess Execution Block)
 try:
     import os
     def _codearena_blocked_os(*args, **kwargs):
@@ -123,6 +138,7 @@ except Exception:
     pass
 # End of CodeArena Sandbox Prelude
 """
+    return prelude
 
 _docker_checked = False
 _docker_available = False
@@ -141,20 +157,76 @@ def is_docker_available() -> bool:
     return _docker_available
 
 def get_sandbox_status() -> dict:
-    """Trả về thông tin chi tiết về trạng thái Sandbox và các giới hạn tài nguyên"""
+    """Trả về thông tin chi tiết về trạng thái Sandbox, cấu hình tài nguyên và hàng đợi Redis"""
     docker_ok = is_docker_available()
+    engine_mode = get_engine_mode()
+    use_docker = docker_ok and (engine_mode != "process_jail")
+    mem_lim = int(get_current_memory_limit())
+    net_str = "Chặn mạng" if is_network_blocked() else "Mở mạng"
+    q_stats = get_queue_stats()
+
     return {
         "docker_available": docker_ok,
-        "engine": "Docker Sandbox Container" if docker_ok else "Native Process Jail Sandbox",
-        "mode": "docker" if docker_ok else "process_jail",
-        "label": "Docker Sandbox (256MB RAM • No Net)" if docker_ok else "Process Jail (256MB RAM • Chặn mạng)",
-        "memory_limit_mb": int(MEMORY_LIMIT_MB),
-        "time_limit_sec": TIME_LIMIT_SECONDS,
-        "network_blocked": True,
-        "cpu_limit": "1 Core (Isolated)",
-        "os_restricted": True,
-        "real_time_monitoring": True
+        "engine": "Docker Sandbox Container" if use_docker else "Native Process Jail Sandbox",
+        "mode": "docker" if use_docker else "process_jail",
+        "engine_mode": engine_mode,
+        "label": f"Docker Sandbox ({mem_lim}MB • {net_str})" if use_docker else f"Process Jail ({mem_lim}MB • {net_str})",
+        "memory_limit_mb": mem_lim,
+        "time_limit_sec": get_current_timeout(),
+        "cpu_limit": float(ACTIVE_SANDBOX_CONFIG.get("cpu_limit", 1.0)),
+        "network_blocked": is_network_blocked(),
+        "queue_workers": int(ACTIVE_SANDBOX_CONFIG.get("queue_workers", 4)),
+        "real_time_monitoring": True,
+        "queue": q_stats
     }
+
+get_sandbox_config = get_sandbox_status
+
+def update_sandbox_config(updates: dict) -> dict:
+    """Cập nhật giới hạn tài nguyên và cấu hình hàng đợi từ màn hình quản trị của giáo viên/admin"""
+    global ACTIVE_SANDBOX_CONFIG
+    if "memory_limit_mb" in updates:
+        try:
+            val = int(updates["memory_limit_mb"])
+            if val in [64, 128, 256, 512, 1024]:
+                ACTIVE_SANDBOX_CONFIG["memory_limit_mb"] = val
+        except Exception:
+            pass
+
+    if "time_limit_sec" in updates:
+        try:
+            val = float(updates["time_limit_sec"])
+            if 0.5 <= val <= 30.0:
+                ACTIVE_SANDBOX_CONFIG["time_limit_sec"] = val
+        except Exception:
+            pass
+
+    if "cpu_limit" in updates:
+        try:
+            val = float(updates["cpu_limit"])
+            if 0.1 <= val <= 8.0:
+                ACTIVE_SANDBOX_CONFIG["cpu_limit"] = val
+        except Exception:
+            pass
+
+    if "network_blocked" in updates:
+        ACTIVE_SANDBOX_CONFIG["network_blocked"] = bool(updates["network_blocked"])
+
+    if "engine_mode" in updates and updates["engine_mode"] in ["auto", "process_jail"]:
+        ACTIVE_SANDBOX_CONFIG["engine_mode"] = updates["engine_mode"]
+
+    if "queue_workers" in updates:
+        try:
+            val = int(updates["queue_workers"])
+            if 1 <= val <= 16:
+                ACTIVE_SANDBOX_CONFIG["queue_workers"] = val
+        except Exception:
+            pass
+
+    if "redis_url" in updates:
+        update_redis_config(updates["redis_url"])
+
+    return get_sandbox_status()
 
 def check_code_security(code: str) -> Optional[str]:
     """
@@ -187,17 +259,20 @@ def check_code_security(code: str) -> Optional[str]:
 
     return None
 
-def execute_code_docker(code: str, language: str = "python", stdin: str = "", timeout: float = TIME_LIMIT_SECONDS) -> dict:
+def execute_code_docker(code: str, language: str = "python", stdin: str = "", timeout: Optional[float] = None) -> dict:
     """
     Thực thi mã nguồn trong Docker container thực sự với cgroups cô lập:
-    - --net=none: Chặn mạng 100%
-    - --memory=256m --memory-swap=256m: Giới hạn RAM cứng 256MB
-    - --cpus=1.0: Giới hạn 1 CPU Core
+    - --net=none: Chặn mạng 100% (nếu cấu hình network_blocked bật)
+    - --memory / --memory-swap: Giới hạn RAM cứng theo cấu hình động
+    - --cpus: Giới hạn CPU Core
     - --pids-limit=64: Chống fork bomb
     - --cap-drop=ALL: Bỏ mọi quyền root
     """
     import tempfile
-    full_code = SANDBOX_PRELUDE + "\n" + code
+    if timeout is None:
+        timeout = get_current_timeout()
+    mem_limit = get_current_memory_limit()
+    full_code = build_sandbox_prelude() + "\n" + code
 
     t_start = time.perf_counter()
     with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as tf:
@@ -210,17 +285,22 @@ def execute_code_docker(code: str, language: str = "python", stdin: str = "", ti
 
         docker_cmd = [
             "docker", "run", "--rm", "-i",
-            "--net=none",
-            "--memory=256m",
-            "--memory-swap=256m",
-            "--cpus=1.0",
+            f"--memory={int(mem_limit)}m",
+            f"--memory-swap={int(mem_limit)}m",
+            f"--cpus={float(ACTIVE_SANDBOX_CONFIG.get('cpu_limit', 1.0))}",
             "--pids-limit=64",
             "--cap-drop=ALL",
             "-v", f"{temp_dir}:/sandbox:ro",
-            "-w", "/sandbox",
+            "-w", "/sandbox"
+        ]
+
+        if is_network_blocked():
+            docker_cmd.append("--net=none")
+
+        docker_cmd.extend([
             "python:3.11-slim",
             "python", "-u", file_name
-        ]
+        ])
 
         proc = subprocess.run(
             docker_cmd,
@@ -236,10 +316,10 @@ def execute_code_docker(code: str, language: str = "python", stdin: str = "", ti
         if proc.returncode == 137:
             return {
                 "stdout": proc.stdout.strip(),
-                "stderr": f"Lỗi: Vượt quá giới hạn bộ nhớ (Memory Limit Exceeded - vượt quá {int(MEMORY_LIMIT_MB)}MB RAM). Docker cgroups đã dừng tiến trình.",
+                "stderr": f"Lỗi: Vượt quá giới hạn bộ nhớ (Memory Limit Exceeded - vượt quá {int(mem_limit)}MB RAM). Docker cgroups đã dừng tiến trình.",
                 "exit_code": 137,
                 "runtime_ms": round(t_elapsed, 1),
-                "memory_mb": MEMORY_LIMIT_MB,
+                "memory_mb": mem_limit,
                 "status": "Memory Limit Exceeded"
             }
 
@@ -283,15 +363,18 @@ def execute_code_docker(code: str, language: str = "python", stdin: str = "", ti
         except Exception:
             pass
 
-def execute_code_native_jail(code: str, language: str = "python", stdin: str = "", timeout: float = TIME_LIMIT_SECONDS) -> dict:
+def execute_code_native_jail(code: str, language: str = "python", stdin: str = "", timeout: Optional[float] = None) -> dict:
     """
     Thực thi mã nguồn trong môi trường tiến trình cô lập Native Process Jail:
-    - Chặn mạng hoàn toàn qua socket/urllib override
+    - Chặn mạng hoàn toàn qua socket/urllib override (nếu bật)
     - Chặn gọi lệnh hệ thống os.system, subprocess
-    - Giới hạn RAM 256MB thời gian thực với psutil memory monitor (và resource trên Linux)
+    - Giới hạn RAM thời gian thực theo cấu hình động với psutil memory monitor (và resource trên Linux)
     - Đo lường RAM và Runtime chính xác 100%
     """
-    full_code = SANDBOX_PRELUDE + "\n" + code
+    if timeout is None:
+        timeout = get_current_timeout()
+    mem_limit = get_current_memory_limit()
+    full_code = build_sandbox_prelude() + "\n" + code
 
     t_start = time.perf_counter()
     peak_memory_mb = 12.0
@@ -304,7 +387,7 @@ def execute_code_native_jail(code: str, language: str = "python", stdin: str = "
             try:
                 import resource
                 def _linux_limits():
-                    limit_bytes = int(MEMORY_LIMIT_MB * 1024 * 1024)
+                    limit_bytes = int(mem_limit * 1024 * 1024)
                     try:
                         resource.setrlimit(resource.RLIMIT_AS, (limit_bytes, limit_bytes))
                     except Exception:
@@ -365,7 +448,7 @@ def execute_code_native_jail(code: str, language: str = "python", stdin: str = "
                     mem = p.memory_info().rss / (1024 * 1024)
                     if mem > peak_memory_mb:
                         peak_memory_mb = mem
-                    if peak_memory_mb > MEMORY_LIMIT_MB:
+                    if peak_memory_mb > mem_limit:
                         proc.kill()
                         killed_mle = True
                         break
@@ -380,7 +463,7 @@ def execute_code_native_jail(code: str, language: str = "python", stdin: str = "
         if killed_mle:
             return {
                 "stdout": stdout_data.strip(),
-                "stderr": f"Lỗi: Vượt quá giới hạn bộ nhớ (Memory Limit Exceeded - tiêu tốn {round(peak_memory_mb, 1)}MB / tối đa {int(MEMORY_LIMIT_MB)}MB RAM). Tiến trình đã bị Sandbox dừng khẩn cấp.",
+                "stderr": f"Lỗi: Vượt quá giới hạn bộ nhớ (Memory Limit Exceeded - tiêu tốn {round(peak_memory_mb, 1)}MB / tối đa {int(mem_limit)}MB RAM). Tiến trình đã bị Sandbox dừng khẩn cấp.",
                 "exit_code": -1,
                 "runtime_ms": round(t_elapsed, 1),
                 "memory_mb": round(peak_memory_mb, 1),
@@ -416,11 +499,11 @@ def execute_code_native_jail(code: str, language: str = "python", stdin: str = "
             "status": "Sandbox Error"
         }
 
-def execute_code(code: str, language: str = "python", stdin: str = "", timeout: float = TIME_LIMIT_SECONDS) -> dict:
+def execute_code(code: str, language: str = "python", stdin: str = "", timeout: Optional[float] = None) -> dict:
     """
     Thực thi mã nguồn an toàn qua hệ thống Sandbox đa lớp (Multi-Layer Isolated Sandbox Engine):
     1. Kiểm tra tĩnh AST (AST Static Security Audit): Phát hiện module cấm (ctypes, subprocess, ...).
-    2. Chạy trên Docker Sandbox nếu Docker Engine đang hoạt động.
+    2. Chạy trên Docker Sandbox nếu Docker Engine đang hoạt động và không bị tắt bởi cấu hình.
     3. Ngược lại, kích hoạt Native Process Jail với chặn mạng (no network) và đo RAM/CPU thực tế.
     """
     if language.lower() not in ["python", "python 3", "py"]:
@@ -446,7 +529,8 @@ def execute_code(code: str, language: str = "python", stdin: str = "", timeout: 
         }
 
     # 2. Điều phối engine thực thi: Docker vs Native Process Jail
-    if is_docker_available():
+    use_docker = (get_engine_mode() != "process_jail") and is_docker_available()
+    if use_docker:
         return execute_code_docker(code=code, language=language, stdin=stdin, timeout=timeout)
     else:
         return execute_code_native_jail(code=code, language=language, stdin=stdin, timeout=timeout)

@@ -25,6 +25,19 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 SQLITE_PATH = str(BASE_DIR / "codearena.db")
 DB_PATH = SQLITE_PATH
 
+# Cấu hình Hàng đợi Redis (Tùy chọn cho Render / Local)
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
+
+# Cấu hình Tài nguyên Sandbox mặc định
+DEFAULT_SANDBOX_CONFIG = {
+    "memory_limit_mb": int(os.getenv("SANDBOX_MEMORY_MB", "256")),
+    "time_limit_sec": float(os.getenv("SANDBOX_TIMEOUT_SEC", "3.0")),
+    "cpu_limit": float(os.getenv("SANDBOX_CPUS", "1.0")),
+    "network_blocked": os.getenv("SANDBOX_NET_BLOCK", "true").lower() in ("true", "1", "yes"),
+    "queue_workers": int(os.getenv("QUEUE_WORKERS", "4")),
+    "engine_mode": os.getenv("SANDBOX_ENGINE_MODE", "auto")  # "auto" hoặc "process_jail"
+}
+
 # Cấu hình máy chủ FastAPI
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", "8000"))
