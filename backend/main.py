@@ -47,7 +47,7 @@ from backend.models import (
 )
 from backend.auth import verify_password
 from backend.config import get_ai_config, save_gemini_key
-from backend.judge import execute_code, evaluate_submission
+from backend.judge import execute_code, evaluate_submission, get_sandbox_status
 from backend.problems import PROBLEMS_DATA
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -106,15 +106,21 @@ async def serve_admin():
 async def health_check():
     stats = get_stats()
     db_status = get_db_status()
+    sandbox_status = get_sandbox_status()
     return {
         "status": "healthy",
         "service": "CodeArena Backend API",
-        "version": "2.2.0",
+        "version": "2.3.0",
         "database": db_status["label"],
         "db_details": db_status,
         "total_accounts": stats["total"],
-        "sandbox_engine": "Python 3 Native Sandbox"
+        "sandbox_engine": sandbox_status["label"],
+        "sandbox_details": sandbox_status
     }
+
+@app.get("/api/sandbox/status", summary="Kiểm tra trạng thái Sandbox & các giới hạn an toàn")
+async def get_sandbox_info():
+    return get_sandbox_status()
 
 @app.get("/api/stats", response_model=StatsResponse, summary="Thống kê tài khoản hệ thống")
 async def get_system_stats():

@@ -535,7 +535,7 @@
               <div id="console-pane-verdict" class="hidden p-4 transition-all">
                 <div id="verdict-body" class="space-y-3">
                   <div class="text-center py-5 text-slate-500 text-xs">
-                    Nhấn <span class="text-indigo-400 font-semibold">"Chạy thử"</span> để kiểm tra test case mẫu hoặc <span class="text-indigo-400 font-semibold">"Nộp bài"</span> để chấm điểm qua Docker Sandbox & AI Auto-Judge.
+                    Nhấn <span class="text-indigo-400 font-semibold">"Chạy thử"</span> để kiểm tra test case mẫu hoặc <span class="text-indigo-400 font-semibold">"Nộp bài"</span> để chấm điểm qua Sandbox cách ly & AI Auto-Judge.
                   </div>
                 </div>
               </div>
@@ -557,7 +557,7 @@
             <div class="bg-slate-900/90 border-t border-slate-800 p-3.5 flex flex-wrap items-center justify-between gap-3">
               <div class="text-xs text-slate-400 flex items-center gap-2 min-w-0 flex-1">
                 <span id="queue-status" class="flex items-center gap-1.5 text-slate-400 min-w-0">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> <span class="truncate sm:whitespace-normal">Judge Worker Online &bull; Docker Sandbox (256MB RAM)</span>
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> <span id="judge-worker-badge-text" class="truncate sm:whitespace-normal" title="Sandbox cách ly an toàn: Giới hạn 256MB RAM, Timeout 3s, Chặn kết nối mạng">Judge Worker Online &bull; Sandbox (256MB &bull; Chặn mạng)</span>
                 </span>
               </div>
               
@@ -1004,7 +1004,7 @@
             <h4 class="font-bold text-white text-xs truncate">Lưu Quang Huy</h4>
             <p class="text-[12px] text-slate-400 font-mono mt-0.5">Thành viên</p>
             <span class="inline-block mt-2 px-2 py-0.5 rounded text-[12px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">Judge / DevOps</span>
-            <p class="text-[12px] text-slate-400 mt-2">Docker Sandbox cách ly, hàng đợi Redis & Python Worker.</p>
+            <p class="text-[12px] text-slate-400 mt-2">Sandbox cách ly đa lớp (Docker / Process Jail), Giới hạn 256MB RAM & Chặn mạng.</p>
           </div>
 
           <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl">
@@ -2887,7 +2887,7 @@ def solve_lis(arr):
       if (verdictBody) {
         verdictBody.innerHTML = `
           <div class="text-center py-5 text-slate-500 text-xs">
-            Nhấn <span class="text-indigo-400 font-semibold whitespace-nowrap">"Chạy thử"</span> để kiểm tra test case mẫu hoặc <span class="text-indigo-400 font-semibold whitespace-nowrap">"Nộp bài"</span> để chấm điểm qua Docker Sandbox & AI Auto-Judge.
+            Nhấn <span class="text-indigo-400 font-semibold whitespace-nowrap">"Chạy thử"</span> để kiểm tra test case mẫu hoặc <span class="text-indigo-400 font-semibold whitespace-nowrap">"Nộp bài"</span> để chấm điểm qua Sandbox cách ly & AI Auto-Judge.
           </div>
         `;
       }
@@ -5840,7 +5840,7 @@ def solve_lis(arr):
     async function rejudgeModalSubmission() {
       if (!checkTeacherOrAdminAccess()) return;
       if (!currentEditingSubId) return;
-      showToast("Đang kích hoạt Docker Sandbox & AI Auto-Judge chấm lại...", "warn");
+      showToast("Đang kích hoạt Sandbox Engine & AI Auto-Judge chấm lại...", "warn");
       try {
         const res = await fetch(`${API_BASE_URL}/submissions/${encodeURIComponent(currentEditingSubId)}/rejudge`, {
           method: 'POST'
@@ -6856,10 +6856,27 @@ def solve_lis(arr):
       }
     });
 
+    async function loadSandboxStatus() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/sandbox/status`);
+        if (res.ok) {
+          const data = await res.json();
+          const badgeEl = document.getElementById('judge-worker-badge-text');
+          if (badgeEl) {
+            badgeEl.innerHTML = `Judge Worker Online &bull; ${escapeHtml(data.label)}`;
+            badgeEl.title = data.docker_available 
+              ? "Chế độ: Docker Sandbox Container thật. Giới hạn 256MB RAM cứng, 1 Core CPU, Chặn toàn bộ kết nối mạng (--net=none)."
+              : "Chế độ: Native Process Jail Sandbox. Giới hạn 256MB RAM thời gian thực, Timeout 3s, Chặn hoàn toàn kết nối mạng và vô hiệu hóa các lệnh can thiệp OS.";
+          }
+        }
+      } catch (e) {}
+    }
+
     refreshProblemSelectDropdown();
     changeProblem("CA-102");
     updateContestSelector();
     updateHeaderUserUI();
+    loadSandboxStatus();
     loadNotifications();
     if (currentUser && currentUser.role === 'Giáo viên') {
       switchTab('grading');
