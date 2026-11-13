@@ -47,10 +47,14 @@ def build_portals():
     student_html = remove_between(student_html, "<!-- NAV_GRADING_START -->", "<!-- NAV_GRADING_END -->")
     # Xóa hoàn toàn nav-accounts khỏi thanh menu
     student_html = remove_between(student_html, "<!-- NAV_ACCOUNTS_START -->", "<!-- NAV_ACCOUNTS_END -->")
+    # Xóa hoàn toàn nav-logs khỏi thanh menu
+    student_html = remove_between(student_html, "<!-- NAV_LOGS_START -->", "<!-- NAV_LOGS_END -->")
     # Xóa hoàn toàn section tab-grading khỏi DOM
     student_html = remove_between(student_html, "<!-- SECTION_GRADING_START -->", "<!-- SECTION_GRADING_END -->")
     # Xóa hoàn toàn section tab-accounts khỏi DOM
     student_html = remove_between(student_html, "<!-- SECTION_ACCOUNTS_START -->", "<!-- SECTION_ACCOUNTS_END -->")
+    # Xóa hoàn toàn section tab-logs khỏi DOM
+    student_html = remove_between(student_html, "<!-- SECTION_LOGS_START -->", "<!-- SECTION_LOGS_END -->")
     # Xóa hoàn toàn nút Tạo / Hủy kỳ thi trong Contest
     student_html = remove_between(student_html, "<!-- TEACHER_CONTEST_ACTION_START -->", "<!-- TEACHER_CONTEST_ACTION_END -->")
 
@@ -102,6 +106,10 @@ def build_portals():
     teacher_html = teacher_html.replace(
         'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
         'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center space-x-2 whitespace-nowrap bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20 shrink-0"'
+    )
+    teacher_html = teacher_html.replace(
+        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
+        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
     )
     # Đổi active tab sang tab-grading (Xem bài & Chấm điểm) ngay khi tải trang cho Giáo viên
     teacher_html = teacher_html.replace(
@@ -166,6 +174,10 @@ def build_portals():
     admin_html = admin_html.replace(
         'id="nav-accounts" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
         'id="nav-accounts" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
+    )
+    admin_html = admin_html.replace(
+        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
+        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
     )
     admin_html = admin_html.replace(
         'id="teacher-contest-action" class="hidden items-center gap-2" style="display: none;"',

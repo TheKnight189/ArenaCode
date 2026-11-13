@@ -27,7 +27,12 @@ from backend.database import (
     get_contest_by_id,
     create_contest,
     cancel_contest,
-    get_db_status
+    get_db_status,
+    add_system_log,
+    list_system_logs,
+    get_system_log_stats,
+    clear_system_logs,
+    get_topic_statistics
 )
 from backend.models import (
     UserCreate,
@@ -129,7 +134,17 @@ async def get_sandbox_cfg():
 
 @app.put("/api/sandbox/config", summary="Cập nhật cấu hình tài nguyên Sandbox & Redis Queue")
 async def set_sandbox_cfg(req: dict):
-    return update_sandbox_config(req)
+    updated = update_sandbox_config(req)
+    add_system_log(
+        level="CONFIG",
+        module="Sandbox",
+        action="Cập nhật tài nguyên Sandbox",
+        message=f"Cập nhật cấu hình Sandbox: RAM {updated.get('memory_limit_mb')}MB, Timeout {updated.get('time_limit_sec')}s, CPU {updated.get('cpu_limit')}, NetBlock {updated.get('network_blocked')}, Workers {updated.get('queue_workers')}",
+        user_id="ADMIN-01",
+        user_name="Quản trị viên Hệ thống",
+        details=req
+    )
+    return updated
 
 @app.get("/api/queue/stats", summary="Thống kê hàng đợi Worker & Redis thời gian thực")
 async def get_queue_info():
@@ -138,7 +153,17 @@ async def get_queue_info():
 @app.post("/api/queue/test-redis", summary="Kiểm tra kết nối Redis URL")
 async def test_redis_conn(req: dict):
     url = req.get("redis_url", "")
-    return test_redis_connection(url)
+    res = test_redis_connection(url)
+    add_system_log(
+        level="CONFIG",
+        module="RedisQueue",
+        action="Kiểm tra kết nối Redis",
+        message=f"Kiểm tra kết nối Redis ({url or 'default'}): {'Thành công' if res.get('success') else 'Thất bại'}",
+        user_id="ADMIN-01",
+        user_name="Quản trị viên Hệ thống",
+        details=res
+    )
+    return res
 
 @app.get("/api/stats", response_model=StatsResponse, summary="Thống kê tài khoản hệ thống")
 async def get_system_stats():
@@ -195,6 +220,16 @@ async def login(req: LoginRequest):
         updated_at=user["updated_at"]
     )
 
+    add_system_log(
+        level="AUTH",
+        module="Auth",
+        action="User Login",
+        message=f"Người dùng {user['name']} ({user['id']}) đăng nhập thành công vai trò {user['role']}",
+        user_id=user["id"],
+        user_name=user["name"],
+        details={"role": user["role"], "email": user["email"]}
+    )
+
     return LoginResponse(
         user=user_resp,
         token=token,
@@ -214,6 +249,15 @@ async def judge_run(req: JudgeRunRequest):
         code=req.code,
         language=req.language,
         stdin=req.stdin or ""
+    )
+    add_system_log(
+        level="JUDGE",
+        module="Sandbox",
+        action="Run Code",
+        message=f"Thực thi mã nguồn {req.language} trên Sandbox: {res.get('status')} ({res.get('runtime_ms')}ms)",
+        user_id="anonymous",
+        user_name="Thí sinh / Khách",
+        details={"status": res.get("status"), "runtime_ms": res.get("runtime_ms"), "memory_mb": res.get("memory_mb")}
     )
     return res
 
@@ -271,6 +315,29 @@ async def judge_submit(req: JudgeSubmitRequest):
         "graded_at": None
     }
     created = create_submission(sub_data)
+
+    is_cheat = verdict.get("similarity_rate", 0) > 75.0 or verdict.get("status") == "Gian lận"
+    if is_cheat:
+        add_system_log(
+            level="SECURITY",
+            module="Plagiarism",
+            action="Plagiarism Detected",
+            message=f"Cảnh báo gian lận: Bài nộp {sub_id} của {req.student_name} bị nghi ngờ sao chép (Trùng lặp {verdict.get('similarity_rate')}%)",
+            user_id=req.student_id,
+            user_name=req.student_name,
+            details={"sub_id": sub_id, "similarity": verdict.get("similarity_rate"), "problem_id": req.problem_id}
+        )
+    else:
+        add_system_log(
+            level="JUDGE",
+            module="JudgeWorker",
+            action="Submission Evaluated",
+            message=f"Chấm bài {sub_id} cho {req.student_name} ({req.problem_name or req.problem_id}): {verdict.get('status')} - {verdict.get('score')} điểm",
+            user_id=req.student_id,
+            user_name=req.student_name,
+            details={"sub_id": sub_id, "score": verdict.get("score"), "runtime": verdict.get("runtime"), "memory": verdict.get("memory")}
+        )
+
     return created
 
 # ========================================================
@@ -305,6 +372,17 @@ async def teacher_grade_submission(sub_id: str, req: GradeSubmissionRequest):
         feedback=req.feedback,
         teacher_name=req.teacher_name or "TS. Nguyễn Thị Hoa Huệ"
     )
+
+    add_system_log(
+        level="JUDGE",
+        module="TeacherGrading",
+        action="Teacher Graded",
+        message=f"Giảng viên {req.teacher_name or 'TS. Nguyễn Thị Hoa Huệ'} đã chấm bài {sub_id}: Điểm {req.score}, Trạng thái: {req.status}",
+        user_id="GV-HAUI-01",
+        user_name=req.teacher_name or "TS. Nguyễn Thị Hoa Huệ",
+        details={"sub_id": sub_id, "score": req.score, "status": req.status}
+    )
+
     return updated
 
 @app.delete("/api/submissions/{sub_id}", summary="Xóa bài làm của sinh viên")
@@ -382,6 +460,15 @@ async def get_contest(contest_id: str):
 @app.post("/api/contests", response_model=ContestResponse, status_code=status.HTTP_201_CREATED, summary="Tạo kỳ thi mới")
 async def create_new_contest(req: ContestCreate):
     created = create_contest(req.model_dump())
+    add_system_log(
+        level="CONTEST",
+        module="Contest",
+        action="Contest Created",
+        message=f"Tạo kỳ thi mới '{req.title}' bởi {req.creator} (Thời lượng: {req.duration_minutes} phút)",
+        user_id=req.creator,
+        user_name=req.creator,
+        details={"contest_id": created.get("id"), "title": req.title}
+    )
     return created
 
 @app.post("/api/contests/{contest_id}/cancel", response_model=ContestResponse, summary="Hủy kỳ thi")
@@ -520,3 +607,77 @@ async def reset_password(user_id: str, req: ResetPasswordRequest):
 
     update_user(user_id, {"password": req.new_password})
     return {"message": f"Đã đặt lại mật khẩu thành công cho tài khoản {existing['name']}!", "success": True}
+
+# ========================================================
+# TOPIC & CATEGORY STATISTICS ENDPOINTS
+# ========================================================
+@app.get("/api/stats/topics", summary="Thống kê bài tập và tiến độ theo từng chủ đề")
+async def get_topics_stats(student_id: Optional[str] = Query(None, description="Lọc theo mã sinh viên để tính độ thành thạo cá nhân")):
+    """
+    Trả về toàn bộ số liệu thống kê phân tích theo chủ đề kiến thức:
+    - Số lượng bài tập, tổng lượt nộp bài, tỉ lệ AC / Pass Rate
+    - Điểm số trung bình toàn lớp & thời gian thực thi trung bình
+    - Mức độ thành thạo cá nhân của học sinh (nếu truyền student_id)
+    - Top sinh viên đạt điểm số cao nhất theo từng chủ đề
+    - Phân bố bài tập & tỉ lệ đạt theo độ khó Dễ (Easy) / Trung bình (Medium) / Khó (Hard)
+    """
+    return get_topic_statistics(student_id=student_id)
+
+# ========================================================
+# SYSTEM LOGS & AUDIT TRAIL ENDPOINTS
+# ========================================================
+@app.get("/api/system/logs", summary="Lấy danh sách nhật ký hệ thống (Audit Logs)")
+async def get_system_logs_api(
+    level: Optional[str] = Query(None, description="Lọc mức độ: ALL, INFO, WARN, ERROR, SECURITY, JUDGE, CONFIG, AUTH"),
+    module: Optional[str] = Query(None, description="Lọc module: Sandbox, RedisQueue, JudgeWorker, Auth, Contest, Plagiarism..."),
+    search: Optional[str] = Query(None, description="Từ khóa tìm kiếm trong nhật ký"),
+    limit: int = Query(100, ge=1, le=500, description="Số lượng bản ghi tối đa"),
+    offset: int = Query(0, ge=0, description="Độ lệch phân trang")
+):
+    """
+    Truy vấn danh sách nhật ký hệ thống với bộ lọc đa chiều (Level, Module, Keyword).
+    Trả về danh sách log kèm thống kê tổng số lượng theo từng phân loại.
+    """
+    lvl = level if isinstance(level, str) else None
+    mod = module if isinstance(module, str) else None
+    q = search if isinstance(search, str) else None
+    lim = limit if isinstance(limit, int) else 100
+    off = offset if isinstance(offset, int) else 0
+
+    logs = list_system_logs(level=lvl, module=mod, search=q, limit=lim, offset=off)
+    stats = get_system_log_stats()
+    return {"logs": logs, "stats": stats, "total": stats.get("TOTAL", len(logs))}
+
+@app.get("/api/system/logs/stats", summary="Thống kê tổng số lượng nhật ký theo mức độ")
+async def get_system_logs_stats_api():
+    """
+    Thống kê số lượng log theo từng mức độ: TOTAL, INFO, WARN, ERROR, SECURITY, JUDGE, CONFIG, AUTH.
+    """
+    return get_system_log_stats()
+
+@app.delete("/api/system/logs", summary="Xóa toàn bộ nhật ký hệ thống (Admin)")
+async def clear_system_logs_api():
+    """
+    Xóa trắng toàn bộ nhật ký và ghi nhận sự kiện bảo mật làm sạch nhật ký.
+    """
+    success = clear_system_logs()
+    add_system_log(
+        level="SECURITY",
+        module="System",
+        action="Logs Cleared",
+        message="Toàn bộ nhật ký hệ thống đã được làm sạch bởi Quản trị viên.",
+        user_id="ADMIN-01",
+        user_name="Quản trị viên Hệ thống"
+    )
+    return {"success": success, "message": "Đã làm sạch toàn bộ nhật ký hệ thống thành công!"}
+
+@app.get("/api/system/logs/export", summary="Xuất toàn bộ nhật ký hệ thống ra file JSON")
+async def export_system_logs_api():
+    """
+    Tải về toàn bộ nhật ký hệ thống dưới dạng tệp JSON phục vụ lưu trữ và phân tích.
+    """
+    logs = list_system_logs(limit=500)
+    return JSONResponse(
+        content=logs,
+        headers={"Content-Disposition": "attachment; filename=codearena_system_logs.json"}
+    )

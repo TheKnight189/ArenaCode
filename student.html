@@ -114,6 +114,10 @@
                 <svg class="w-3.5 h-3.5 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
                 <span id="header-sandbox-label">Sandbox: 256MB</span>
               </button>
+              <button onclick="switchTab('logs')" id="header-logs-btn" title="Nhật ký Hoạt động & Giám sát Hệ thống Realtime (Giáo viên / Admin)" class="teacher-admin-only hidden items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 rounded border border-rose-500/30 whitespace-nowrap transition cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2zM5 9h14"/></svg>
+                <span id="header-logs-label">Nhật ký</span>
+              </button>
             </div>
             <p class="text-[11px] sm:text-[12px] text-slate-400 hidden sm:block truncate max-w-[340px] md:max-w-[480px]">Chấm bài Sandbox tự động & AI Đánh giá yêu cầu đề bài</p>
           </div>
@@ -226,11 +230,19 @@
               <span>Kết quả & Nhận xét</span>
             </button>
 
+            <!-- TAB: THỐNG KÊ CHỦ ĐỀ -->
+            <button onclick="switchTab('topics')" id="nav-topics" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0">
+              <svg class="w-4 h-4 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              <span>Thống kê Chủ đề</span>
+            </button>
+
             <!-- TAB 5: HỒ SƠ HAUI -->
             <button onclick="switchTab('project')" id="nav-project" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0">
               <svg class="w-4 h-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
               <span>Hồ sơ HaUI</span>
             </button>
+
+            
 
             
 
@@ -561,6 +573,10 @@
                   <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
                   <span>Cấu hình Sandbox</span>
                 </button>
+                <button onclick="switchTab('logs')" id="btn-open-logs-status" title="Mở Màn hình Nhật ký Hệ thống & Giám sát Realtime (Giáo viên / Admin)" class="teacher-admin-only hidden px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-rose-300 hover:text-white border border-slate-700 items-center gap-1 transition cursor-pointer shrink-0">
+                  <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2zM5 9h14"/></svg>
+                  <span>Nhật ký Hệ thống</span>
+                </button>
               </div>
               
               <div class="flex items-center space-x-2.5">
@@ -733,6 +749,127 @@
 
     </section>
 
+    <!-- ========================================================= -->
+    <!-- TAB: THỐNG KÊ NĂNG LỰC & PHÂN TÍCH THEO CHỦ ĐỀ            -->
+    <!-- ========================================================= -->
+    <section id="tab-topics" class="hidden space-y-6">
+
+      <!-- Header & Scope Filter -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0">
+              Phân tích Chuyên sâu (Topic Analytics)
+            </span>
+            <span class="text-xs text-slate-400">Theo dõi tỉ lệ đạt, độ khó và tiến độ rèn luyện</span>
+          </div>
+          <h2 class="text-2xl font-black text-white">Thống kê Theo Chủ đề & Mảng Kiến thức</h2>
+          <p class="text-xs text-slate-400 mt-1">
+            Đánh giá phổ điểm, tỉ lệ vượt qua test cases (AC Rate) và phân bố năng lực của học sinh trên từng chủ đề thuật toán.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-slate-300">
+            <span class="text-slate-500 text-[11px]">Đối tượng:</span>
+            <select id="topics-filter-scope" onchange="loadTopicStatsData()" class="bg-transparent text-white font-medium outline-none cursor-pointer">
+              <option value="class" selected>Toàn bộ lớp / Hệ thống</option>
+              <option value="me">Cá nhân (Tài khoản hiện tại)</option>
+            </select>
+          </div>
+          <button onclick="loadTopicStatsData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold rounded-xl border border-slate-700 flex items-center gap-1.5 transition cursor-pointer">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>Làm mới</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Overview KPI Stats Bar -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-400 font-semibold uppercase">Chủ đề kiến thức</span>
+            <div class="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            </div>
+          </div>
+          <p id="topic-kpi-count" class="text-2xl font-black text-white mt-2">4</p>
+          <span id="topic-kpi-prob-count" class="text-[11px] text-indigo-400 font-medium">4 bài toán trong kho</span>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-400 font-semibold uppercase">Tỉ lệ Đạt (AC Rate)</span>
+            <div class="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+          </div>
+          <p id="topic-kpi-ac-rate" class="text-2xl font-black text-emerald-400 mt-2">0.0%</p>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+            <div id="topic-kpi-ac-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-400 font-semibold uppercase">Điểm TB Toàn Hệ Thống</span>
+            <div class="p-1.5 bg-amber-500/10 rounded-lg text-amber-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+            </div>
+          </div>
+          <p id="topic-kpi-avg-score" class="text-2xl font-black text-amber-400 mt-2">0.0 / 10</p>
+          <span id="topic-kpi-subs-count" class="text-[11px] text-slate-400 font-medium">0 lượt nộp bài</span>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg relative overflow-hidden">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-slate-400 font-semibold uppercase">Đánh giá Năng lực</span>
+            <div class="p-1.5 bg-cyan-500/10 rounded-lg text-cyan-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            </div>
+          </div>
+          <div class="mt-2 space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-400 text-[11px]">Thế mạnh:</span>
+              <span id="topic-kpi-strongest" class="text-emerald-400 font-bold truncate max-w-[130px]">-</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-slate-400 text-[11px]">Cần ôn tập:</span>
+              <span id="topic-kpi-weakest" class="text-rose-400 font-bold truncate max-w-[130px]">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Difficulty Level Summary Strip -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <span class="text-slate-400 font-semibold uppercase text-[11px] tracking-wider">Phân bố Mức độ Thử thách:</span>
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <span class="text-slate-300 font-medium">Dễ (Easy):</span>
+            <span id="topic-diff-easy-stat" class="font-bold text-emerald-400 font-mono">1 bài (100% AC)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            <span class="text-slate-300 font-medium">Trung bình (Medium):</span>
+            <span id="topic-diff-medium-stat" class="font-bold text-amber-400 font-mono">2 bài (66.7% AC)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+            <span class="text-slate-300 font-medium">Khó (Hard):</span>
+            <span id="topic-diff-hard-stat" class="font-bold text-rose-400 font-mono">1 bài (0% AC)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed Topic Cards Grid -->
+      <div id="topics-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Rendered dynamically by renderTopicStats() -->
+      </div>
+
+    </section>
+
     <!-- ========================================== -->
     <!-- TAB 5: PROJECT CHARTER & HAUI NHÓM 14      -->
     <!-- ========================================== -->
@@ -816,6 +953,8 @@
       </div>
 
     </section>
+
+    
 
     
 
@@ -1700,6 +1839,30 @@ def solve_lis(arr):
         }
       });
 
+      // Phân quyền hiển thị tab Nhật ký Hệ thống (chỉ Giáo viên & Admin)
+      const navLogs = document.getElementById('nav-logs');
+      const tabLogs = document.getElementById('tab-logs');
+      if (navLogs) {
+        if (isTeacherOrAdmin) {
+          navLogs.style.display = 'flex';
+          navLogs.classList.remove('hidden');
+        } else {
+          navLogs.style.display = 'none';
+          navLogs.classList.add('hidden');
+        }
+      }
+      if (tabLogs && !isTeacherOrAdmin) {
+        tabLogs.style.display = 'none';
+        tabLogs.classList.add('hidden');
+      }
+
+      // Tab Thống kê Chủ đề hiển thị cho tất cả người dùng
+      const navTopics = document.getElementById('nav-topics');
+      if (navTopics) {
+        navTopics.style.display = 'flex';
+        navTopics.classList.remove('hidden');
+      }
+
       // 2. CẬP NHẬT THÔNG TIN NGƯỜI DÙNG Ở HEADER
       if (isGuest) {
         if (nameEl) nameEl.innerText = "Khách truy cập";
@@ -2251,13 +2414,19 @@ def solve_lis(arr):
         return;
       }
 
+      if (tabId === 'logs' && role !== 'Giáo viên' && role !== 'Admin') {
+        showToast("Mục Nhật ký Hệ thống chỉ dành riêng cho Giáo viên và Quản trị viên (Admin).", "error");
+        switchTab('ide');
+        return;
+      }
+
       if (tabId === 'results' && isGuest) {
         showToast("Vui lòng đăng nhập để xem Kết quả & Nhận xét!", "warn");
         openLoginModal();
         return;
       }
 
-      const tabs = ['ide', 'grading', 'contest', 'results', 'project', 'accounts'];
+      const tabs = ['ide', 'grading', 'contest', 'results', 'topics', 'project', 'accounts', 'logs'];
       tabs.forEach(t => {
         const el = document.getElementById('tab-' + t);
         const navEl = document.getElementById('nav-' + t);
@@ -2286,7 +2455,9 @@ def solve_lis(arr):
       if (tabId === 'grading') evaluateGradingTabAccess();
       if (tabId === 'contest') renderLeaderboard();
       if (tabId === 'results') renderStudentResultsTab();
+      if (tabId === 'topics') loadTopicStatsData();
       if (tabId === 'accounts') evaluateAccountsTabAccess();
+      if (tabId === 'logs') loadSystemLogsData();
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -5749,6 +5920,442 @@ def solve_lis(arr):
       loadSandboxStatus();
     }
 
+    // =========================================================================
+    // FEATURE: THỐNG KÊ THEO CHỦ ĐỀ & MẢNG KIẾN THỨC (TOPIC ANALYTICS)
+    // =========================================================================
+    let topicStatsDataCache = null;
+
+    async function loadTopicStatsData() {
+      const scopeEl = document.getElementById('topics-filter-scope');
+      const scope = scopeEl ? scopeEl.value : 'class';
+      const studentIdParam = (scope === 'me' && currentUser && currentUser.id) ? currentUser.id : '';
+
+      try {
+        const url = studentIdParam 
+          ? `${API_BASE_URL}/stats/topics?student_id=${encodeURIComponent(studentIdParam)}`
+          : `${API_BASE_URL}/stats/topics`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          topicStatsDataCache = data;
+          renderTopicStats(data);
+          return;
+        }
+      } catch (err) {
+        console.warn("Lỗi tải dữ liệu Thống kê Chủ đề:", err);
+      }
+      
+      if (topicStatsDataCache) {
+        renderTopicStats(topicStatsDataCache);
+      }
+    }
+
+    function renderTopicStats(data) {
+      if (!data) return;
+      const s = data.summary || {};
+
+      const kpiCount = document.getElementById('topic-kpi-count');
+      if (kpiCount) kpiCount.innerText = s.total_topics || (data.topics ? data.topics.length : 0);
+
+      const kpiProbCount = document.getElementById('topic-kpi-prob-count');
+      if (kpiProbCount) kpiProbCount.innerText = `${s.total_problems || 4} bài toán trong kho`;
+
+      const kpiAcRate = document.getElementById('topic-kpi-ac-rate');
+      if (kpiAcRate) kpiAcRate.innerText = `${s.overall_pass_rate || 0}%`;
+
+      const kpiAcBar = document.getElementById('topic-kpi-ac-bar');
+      if (kpiAcBar) kpiAcBar.style.width = `${Math.min(100, s.overall_pass_rate || 0)}%`;
+
+      const kpiAvgScore = document.getElementById('topic-kpi-avg-score');
+      if (kpiAvgScore) kpiAvgScore.innerText = `${s.overall_avg_score || 0} / 10`;
+
+      const kpiSubsCount = document.getElementById('topic-kpi-subs-count');
+      if (kpiSubsCount) kpiSubsCount.innerText = `${s.total_submissions || 0} lượt nộp bài`;
+
+      const kpiStrongest = document.getElementById('topic-kpi-strongest');
+      if (kpiStrongest) kpiStrongest.innerText = s.strongest_topic || "Đang cập nhật";
+
+      const kpiWeakest = document.getElementById('topic-kpi-weakest');
+      if (kpiWeakest) kpiWeakest.innerText = s.weakest_topic || "Đang cập nhật";
+
+      const diff = data.difficulty_breakdown || {};
+      const easyEl = document.getElementById('topic-diff-easy-stat');
+      if (easyEl && diff.Easy) {
+        const easyRate = diff.Easy.submissions > 0 ? Math.round(diff.Easy.passed / diff.Easy.submissions * 100) : 100;
+        easyEl.innerText = `${diff.Easy.total_problems} bài (${easyRate}% AC)`;
+      }
+      const medEl = document.getElementById('topic-diff-medium-stat');
+      if (medEl && diff.Medium) {
+        const medRate = diff.Medium.submissions > 0 ? Math.round(diff.Medium.passed / diff.Medium.submissions * 100) : 66.7;
+        medEl.innerText = `${diff.Medium.total_problems} bài (${medRate}% AC)`;
+      }
+      const hardEl = document.getElementById('topic-diff-hard-stat');
+      if (hardEl && diff.Hard) {
+        const hardRate = diff.Hard.submissions > 0 ? Math.round(diff.Hard.passed / diff.Hard.submissions * 100) : 0;
+        hardEl.innerText = `${diff.Hard.total_problems} bài (${hardRate}% AC)`;
+      }
+
+      const container = document.getElementById('topics-cards-container');
+      if (!container) return;
+
+      const topics = data.topics || [];
+      if (topics.length === 0) {
+        container.innerHTML = `<div class="col-span-2 text-center py-10 text-slate-500">Chưa có dữ liệu chủ đề bài tập.</div>`;
+        return;
+      }
+
+      container.innerHTML = topics.map(t => {
+        const passPercent = t.pass_rate || 0;
+        const color = t.color || 'indigo';
+        const colorMap = {
+          emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', bar: 'bg-emerald-500' },
+          cyan: { bg: 'bg-cyan-500/10', border: 'border-cyan-500/30', text: 'text-cyan-400', bar: 'bg-cyan-500' },
+          purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', bar: 'bg-purple-500' },
+          amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', bar: 'bg-amber-500' },
+          indigo: { bg: 'bg-indigo-500/10', border: 'border-indigo-500/30', text: 'text-indigo-400', bar: 'bg-indigo-500' }
+        };
+        const cStyle = colorMap[color] || colorMap.indigo;
+
+        let userStatusHtml = '';
+        if (t.user_status) {
+          const us = t.user_status;
+          const badgeClass = us.attempted 
+            ? (us.is_passed ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-amber-500/20 text-amber-300 border-amber-500/30')
+            : 'bg-slate-800 text-slate-400 border-slate-700';
+          userStatusHtml = `
+            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800/80 flex items-center justify-between text-xs">
+              <span class="text-slate-400 text-[11px]">Tiến độ của bạn:</span>
+              <span class="px-2 py-0.5 rounded text-[11px] font-bold border ${badgeClass}">
+                ${escapeHtml(us.mastery || 'Chưa bắt đầu')} &bull; Điểm cao nhất: ${us.best_score || 0}đ
+              </span>
+            </div>
+          `;
+        }
+
+        const problemsHtml = (t.problems || []).map(p => {
+          const diffBadge = p.diff === 'Easy' 
+            ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' 
+            : (p.diff === 'Hard' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30');
+          return `
+            <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition">
+              <div class="flex items-center space-x-2 truncate min-w-0">
+                <span class="font-mono text-[11px] font-bold text-slate-400 px-1.5 py-0.5 rounded bg-slate-800 shrink-0">${escapeHtml(p.id)}</span>
+                <span class="text-xs text-white font-medium truncate">${escapeHtml(p.name)}</span>
+              </div>
+              <div class="flex items-center space-x-2 shrink-0">
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold border ${diffBadge}">${escapeHtml(p.diff)}</span>
+                <button onclick="switchTab('ide'); changeProblem('${escapeHtml(p.id)}');" class="px-2 py-1 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded text-[11px] font-semibold transition cursor-pointer">
+                  Luyện tập
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        const topStudents = (t.top_students || []).slice(0, 3);
+        const topHtml = topStudents.length > 0 ? `
+          <div class="pt-2 border-t border-slate-800/60">
+            <span class="text-[10px] text-slate-500 uppercase font-semibold block mb-1.5">Top Dẫn đầu Chủ đề:</span>
+            <div class="flex flex-wrap gap-1.5">
+              ${topStudents.map((st, i) => `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-slate-950 border border-slate-800 text-slate-300">
+                  <span class="text-amber-400 font-bold font-mono">#${i + 1}</span>
+                  <span class="truncate max-w-[120px]">${escapeHtml(st.student_name)}</span>
+                  <span class="text-emerald-400 font-bold font-mono text-[10px]">${st.best_score}đ</span>
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        ` : '';
+
+        return `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 hover:border-slate-700 transition">
+            <div class="flex items-start justify-between gap-3">
+              <div class="space-y-1">
+                <div class="flex items-center space-x-2">
+                  <span class="px-2.5 py-0.5 rounded text-xs font-bold border ${cStyle.bg} ${cStyle.border} ${cStyle.text}">
+                    ${escapeHtml(t.topic)}
+                  </span>
+                  <span class="text-[11px] text-slate-400 font-mono">${t.problem_count || 1} bài tập</span>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed">${escapeHtml(t.desc || '')}</p>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-lg font-black font-mono text-white">${passPercent}%</span>
+                <span class="block text-[10px] text-slate-400">Tỉ lệ đạt</span>
+              </div>
+            </div>
+
+            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+              <div class="${cStyle.bar} h-full rounded-full transition-all duration-500" style="width: ${passPercent}%"></div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 text-center text-xs bg-slate-950 p-2.5 rounded-xl border border-slate-800/80">
+              <div>
+                <span class="text-slate-500 block text-[10px]">Lượt nộp</span>
+                <span class="text-white font-mono font-bold">${t.total_submissions || 0}</span>
+              </div>
+              <div>
+                <span class="text-slate-500 block text-[10px]">Điểm TB</span>
+                <span class="text-amber-400 font-mono font-bold">${t.avg_score || 0}</span>
+              </div>
+              <div>
+                <span class="text-slate-500 block text-[10px]">Runtime TB</span>
+                <span class="text-cyan-400 font-mono font-bold">${t.avg_runtime_ms || 0}ms</span>
+              </div>
+              <div>
+                <span class="text-slate-500 block text-[10px]">RAM TB</span>
+                <span class="text-purple-400 font-mono font-bold">${t.avg_memory_mb || 0}MB</span>
+              </div>
+            </div>
+
+            ${userStatusHtml}
+
+            <div class="space-y-1.5">
+              <span class="text-[10px] text-slate-400 uppercase font-semibold block">Kho bài tập thuộc chủ đề:</span>
+              <div class="space-y-1.5">
+                ${problemsHtml}
+              </div>
+            </div>
+
+            ${topHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // FEATURE: MÀN HÌNH NHẬT KÝ HỆ THỐNG & AUDIT LOGS (GIÁO VIÊN & ADMIN)
+    // =========================================================================
+    let currentLogsLevel = 'ALL';
+    let currentLogsSearch = '';
+    let logsAutoRefreshInterval = null;
+    let cachedLogsList = [];
+
+    async function loadSystemLogsData() {
+      if (!currentUser || (currentUser.role !== 'Giáo viên' && currentUser.role !== 'Admin')) {
+        return;
+      }
+
+      try {
+        let url = `${API_BASE_URL}/system/logs?limit=100`;
+        if (currentLogsLevel && currentLogsLevel !== 'ALL') {
+          url += `&level=${encodeURIComponent(currentLogsLevel)}`;
+        }
+        if (currentLogsSearch && currentLogsSearch.trim()) {
+          url += `&search=${encodeURIComponent(currentLogsSearch.trim())}`;
+        }
+
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          cachedLogsList = data.logs || [];
+          renderSystemLogs(data);
+          return;
+        }
+      } catch (err) {
+        console.warn("Lỗi tải System Logs:", err);
+      }
+    }
+
+    function renderSystemLogs(data) {
+      if (!data) return;
+      const stats = data.stats || {};
+      const logs = data.logs || [];
+
+      const totalEl = document.getElementById('log-stat-total');
+      if (totalEl) totalEl.innerText = stats.TOTAL || logs.length;
+
+      const secEl = document.getElementById('log-stat-security');
+      if (secEl) secEl.innerText = stats.SECURITY || 0;
+
+      const judgeEl = document.getElementById('log-stat-judge');
+      if (judgeEl) judgeEl.innerText = stats.JUDGE || 0;
+
+      const cfgEl = document.getElementById('log-stat-config');
+      if (cfgEl) cfgEl.innerText = stats.CONFIG || 0;
+
+      const authEl = document.getElementById('log-stat-auth');
+      if (authEl) authEl.innerText = stats.AUTH || 0;
+
+      const errEl = document.getElementById('log-stat-error');
+      if (errEl) errEl.innerText = (stats.ERROR || 0) + (stats.WARN || 0);
+
+      const tbody = document.getElementById('system-logs-table-body');
+      const emptyState = document.getElementById('logs-empty-state');
+      if (!tbody) return;
+
+      if (logs.length === 0) {
+        tbody.innerHTML = '';
+        if (emptyState) emptyState.classList.remove('hidden');
+        return;
+      }
+
+      if (emptyState) emptyState.classList.add('hidden');
+
+      const levelBadges = {
+        SECURITY: 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm shadow-rose-500/10',
+        JUDGE: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+        CONFIG: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+        AUTH: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
+        INFO: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+        WARN: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+        ERROR: 'bg-red-500/20 text-red-300 border-red-500/40'
+      };
+
+      tbody.innerHTML = logs.map(item => {
+        const badgeClass = levelBadges[item.level] || 'bg-slate-800 text-slate-300 border-slate-700';
+        const itemJsonSafe = encodeURIComponent(JSON.stringify(item));
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-3 px-4 text-slate-400 whitespace-nowrap text-[11px]">
+              ${escapeHtml(item.timestamp)}
+            </td>
+            <td class="py-3 px-3 whitespace-nowrap">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${badgeClass}">
+                ${escapeHtml(item.level)}
+              </span>
+            </td>
+            <td class="py-3 px-3 whitespace-nowrap">
+              <span class="text-slate-300 text-[11px] font-semibold bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
+                ${escapeHtml(item.module || 'System')}
+              </span>
+            </td>
+            <td class="py-3 px-3 whitespace-nowrap">
+              <div class="flex items-center space-x-1.5 truncate max-w-[160px]">
+                <span class="w-5 h-5 rounded bg-indigo-600/30 text-indigo-300 flex items-center justify-center text-[10px] font-bold shrink-0">
+                  ${escapeHtml((item.user_name || 'SY').substring(0, 2).toUpperCase())}
+                </span>
+                <span class="text-white text-xs truncate" title="${escapeHtml(item.user_name || item.user_id)}">
+                  ${escapeHtml(item.user_name || item.user_id || 'System')}
+                </span>
+              </div>
+            </td>
+            <td class="py-3 px-4">
+              <div class="space-y-0.5">
+                <span class="font-bold text-white text-xs block">${escapeHtml(item.action || '')}</span>
+                <p class="text-slate-400 text-[11px] leading-relaxed truncate max-w-md sm:max-w-xl font-sans" title="${escapeHtml(item.message || '')}">
+                  ${escapeHtml(item.message || '')}
+                </p>
+              </div>
+            </td>
+            <td class="py-3 px-3 text-right whitespace-nowrap">
+              <button onclick="openLogDetailModal('${itemJsonSafe}')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-[11px] font-semibold rounded-lg border border-slate-700 transition cursor-pointer">
+                Xem
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterLogsByLevel(level) {
+      currentLogsLevel = level;
+      document.querySelectorAll('#logs-level-filter-group .log-filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-level') === level) {
+          btn.className = "log-filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-600 text-white transition cursor-pointer";
+        } else {
+          btn.className = "log-filter-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer";
+        }
+      });
+      loadSystemLogsData();
+    }
+
+    let logsSearchTimeout = null;
+    function handleLogsSearch(e) {
+      clearTimeout(logsSearchTimeout);
+      logsSearchTimeout = setTimeout(() => {
+        currentLogsSearch = e.target.value;
+        loadSystemLogsData();
+      }, 350);
+    }
+
+    function toggleLogsAutoRefresh(enabled) {
+      if (logsAutoRefreshInterval) {
+        clearInterval(logsAutoRefreshInterval);
+        logsAutoRefreshInterval = null;
+      }
+      if (enabled) {
+        logsAutoRefreshInterval = setInterval(() => {
+          const tabLogs = document.getElementById('tab-logs');
+          if (tabLogs && !tabLogs.classList.contains('hidden')) {
+            loadSystemLogsData();
+          }
+        }, 5000);
+      }
+    }
+
+    function openLogDetailModal(encodedJson) {
+      try {
+        const item = JSON.parse(decodeURIComponent(encodedJson));
+        const modal = document.getElementById('log-detail-modal');
+        if (!modal) return;
+
+        const badge = document.getElementById('log-detail-badge');
+        if (badge) {
+          badge.innerText = item.level;
+          badge.className = `px-2 py-0.5 rounded text-xs font-bold font-mono border ${
+            item.level === 'SECURITY' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30' :
+            item.level === 'JUDGE' ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' :
+            item.level === 'CONFIG' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+            'bg-slate-800 text-slate-300 border-slate-700'
+          }`;
+        }
+
+        const title = document.getElementById('log-detail-title');
+        if (title) title.innerText = `${item.id} • ${item.action || 'System Event'}`;
+
+        const time = document.getElementById('log-detail-time');
+        if (time) time.innerText = item.timestamp;
+
+        const mod = document.getElementById('log-detail-module');
+        if (mod) mod.innerText = item.module || 'System';
+
+        const user = document.getElementById('log-detail-user');
+        if (user) user.innerText = `${item.user_name || 'System'} (${item.user_id || 'system'})`;
+
+        const ip = document.getElementById('log-detail-ip');
+        if (ip) ip.innerText = item.ip_address || '127.0.0.1';
+
+        const msg = document.getElementById('log-detail-msg');
+        if (msg) msg.innerText = item.message || '';
+
+        const jsonEl = document.getElementById('log-detail-json');
+        if (jsonEl) jsonEl.innerText = JSON.stringify(item.details || {}, null, 2);
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } catch (e) {
+        console.error("Lỗi parse log detail:", e);
+      }
+    }
+
+    function closeLogDetailModal() {
+      const modal = document.getElementById('log-detail-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    async function clearAllSystemLogsPrompt() {
+      if (!confirm("CẢNH BÁO: Bạn có chắc chắn muốn xóa sạch toàn bộ bản ghi nhật ký hệ thống không?\nThao tác này không thể hoàn tác.")) {
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE_URL}/system/logs`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast("Đã làm sạch toàn bộ nhật ký hệ thống!", "success");
+          loadSystemLogsData();
+        } else {
+          showToast("Lỗi khi xóa nhật ký hệ thống!", "error");
+        }
+      } catch (err) {
+        showToast("Lỗi kết nối khi xóa nhật ký!", "error");
+      }
+    }
+
     function clearEditorCode() {
       if (confirm("Bạn có chắc chắn muốn xóa toàn bộ mã nguồn trên trình soạn thảo không?")) {
         const codeInput = document.getElementById('code-input');
@@ -6225,6 +6832,8 @@ def solve_lis(arr):
         closeCreateContestModal();
         closeDeleteSubmissionModal();
         closeAIConfigModal();
+        closeSandboxConfigModal();
+        closeLogDetailModal();
       }
     });
 
@@ -6282,6 +6891,8 @@ def solve_lis(arr):
     loadAccountsData();
     loadSubmissionsData();
     loadContestsData();
+    loadTopicStatsData();
+    toggleLogsAutoRefresh(true);
     updateEditorStats();
 
     // Polling tự động kiểm tra kỳ thi và bài nộp mới định kỳ mỗi 5 giây (đồng bộ liên máy / liên thiết bị trên Render.com)

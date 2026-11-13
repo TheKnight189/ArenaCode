@@ -2,6 +2,7 @@ import sqlite3
 import os
 import json
 import logging
+import secrets
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 
@@ -203,6 +204,21 @@ def _init_postgres_schema(cursor):
     );
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS system_logs (
+        id VARCHAR(100) PRIMARY KEY,
+        timestamp VARCHAR(50) NOT NULL,
+        level VARCHAR(20) NOT NULL,
+        module VARCHAR(50) NOT NULL,
+        action VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        user_id VARCHAR(100),
+        user_name VARCHAR(255),
+        ip_address VARCHAR(50),
+        details TEXT
+    );
+    """)
+
 def _init_sqlite_schema(cursor):
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
@@ -257,6 +273,21 @@ def _init_sqlite_schema(cursor):
         grader_mode TEXT NOT NULL DEFAULT 'hybrid',
         problems TEXT NOT NULL,
         created_at TEXT NOT NULL
+    );
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS system_logs (
+        id TEXT PRIMARY KEY,
+        timestamp TEXT NOT NULL,
+        level TEXT NOT NULL,
+        module TEXT NOT NULL,
+        action TEXT NOT NULL,
+        message TEXT NOT NULL,
+        user_id TEXT,
+        user_name TEXT,
+        ip_address TEXT,
+        details TEXT
     );
     """)
 
@@ -477,6 +508,120 @@ def _seed_data_if_needed(cursor, conn):
             json.dumps(["CA-101", "CA-102", "CA-103", "CA-104"]),
             now
         ))
+        conn.commit()
+
+    # Kiểm tra system_logs
+    cursor.execute("SELECT COUNT(*) as count FROM system_logs")
+    l_row = cursor.fetchone()
+    l_count = l_row["count"] if l_row else 0
+
+    if l_count == 0:
+        seed_logs = [
+            {
+                "id": "LOG-1001",
+                "timestamp": now,
+                "level": "INFO",
+                "module": "System",
+                "action": "Server Bootstrap",
+                "message": "Hệ thống CodeArena khởi động thành công. Database kết nối ổn định.",
+                "user_id": "SYSTEM",
+                "user_name": "System Kernel",
+                "ip_address": "127.0.0.1",
+                "details": json.dumps({"engine": "FastAPI + Uvicorn", "env": "Production"})
+            },
+            {
+                "id": "LOG-1002",
+                "timestamp": now,
+                "level": "INFO",
+                "module": "RedisQueue",
+                "action": "Worker Pool Initialized",
+                "message": "Async Task Queue & Worker Pool khởi tạo: 4 worker concurrency sẵn sàng xử lý tác vụ chấm bài.",
+                "user_id": "SYSTEM",
+                "user_name": "Worker Pool",
+                "ip_address": "127.0.0.1",
+                "details": json.dumps({"workers": 4, "mode": "In-Memory Asynchronous Queue"})
+            },
+            {
+                "id": "LOG-1003",
+                "timestamp": now,
+                "level": "CONFIG",
+                "module": "Sandbox",
+                "action": "Sandbox Initialized",
+                "message": "Cấu hình tài nguyên Sandbox kích hoạt: RAM 256MB, Timeout 3.0s, Chặn mạng (Network Blocked: True).",
+                "user_id": "ADMIN-01",
+                "user_name": "Quản trị viên Hệ thống",
+                "ip_address": "10.0.4.12",
+                "details": json.dumps({"memory_limit_mb": 256, "time_limit_sec": 3.0, "network_blocked": True})
+            },
+            {
+                "id": "LOG-1004",
+                "timestamp": now,
+                "level": "SECURITY",
+                "module": "Security",
+                "action": "AST Security Audit",
+                "message": "AST Static Security Analyzer đã kích hoạt quét bảo mật chống can thiệp OS và vô hiệu hóa syscalls.",
+                "user_id": "SYSTEM",
+                "user_name": "AST Analyzer",
+                "ip_address": "127.0.0.1",
+                "details": json.dumps({"blocked_modules": ["os", "subprocess", "ctypes", "socket", "sys.modules"]})
+            },
+            {
+                "id": "LOG-1005",
+                "timestamp": now,
+                "level": "AUTH",
+                "module": "Auth",
+                "action": "User Login",
+                "message": "Giảng viên TS. Nguyễn Thị Hoa Huệ (GV-HAUI-01) đăng nhập thành công vào Cổng Giảng viên.",
+                "user_id": "GV-HAUI-01",
+                "user_name": "TS. Nguyễn Thị Hoa Huệ",
+                "ip_address": "192.168.1.10",
+                "details": json.dumps({"role": "Giáo viên", "portal": "Teacher Portal"})
+            },
+            {
+                "id": "LOG-1006",
+                "timestamp": now,
+                "level": "JUDGE",
+                "module": "JudgeWorker",
+                "action": "Code Evaluated",
+                "message": "Chấm bài nộp SUB-4080 (Dãy con tăng dài nhất - LIS) của sinh viên Trần Đăng Khoa: AC 5/5, 32ms, 14.4MB.",
+                "user_id": "20240606239",
+                "user_name": "Trần Đăng Khoa",
+                "ip_address": "192.168.1.45",
+                "details": json.dumps({"submission_id": "SUB-4080", "problem": "CA-102", "verdict": "Accepted", "score": 10.0})
+            },
+            {
+                "id": "LOG-1007",
+                "timestamp": now,
+                "level": "SECURITY",
+                "module": "Plagiarism",
+                "action": "Plagiarism Detected",
+                "message": "Cảnh báo gian lận: Bài nộp SUB-4082 (Nguyễn Kim Huy) trùng lặp AST 94.6% với bài nộp SUB-4080 (Trần Đăng Khoa).",
+                "user_id": "20240606240",
+                "user_name": "Nguyễn Kim Huy",
+                "ip_address": "192.168.1.88",
+                "details": json.dumps({"target_sub": "SUB-4080", "similarity": 94.6, "threshold": 75.0, "penalty": "0 điểm"})
+            },
+            {
+                "id": "LOG-1008",
+                "timestamp": now,
+                "level": "JUDGE",
+                "module": "JudgeWorker",
+                "action": "Teacher Graded",
+                "message": "TS. Nguyễn Thị Hoa Huệ đã hoàn tất chấm điểm và nhận xét chính thức cho bài nộp SUB-4081 (Tìm cặp số có tổng bằng K).",
+                "user_id": "GV-HAUI-01",
+                "user_name": "TS. Nguyễn Thị Hoa Huệ",
+                "ip_address": "192.168.1.10",
+                "details": json.dumps({"submission_id": "SUB-4081", "score": 10.0, "teacher": "TS. Nguyễn Thị Hoa Huệ"})
+            }
+        ]
+        for log in seed_logs:
+            cursor.execute("""
+            INSERT IGNORE INTO system_logs (id, timestamp, level, module, action, message, user_id, user_name, ip_address, details)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                log["id"], log["timestamp"], log["level"], log["module"], log["action"],
+                log["message"], log["user_id"], log["user_name"], log["ip_address"], log["details"]
+            ))
         conn.commit()
 
 def init_db():
@@ -915,3 +1060,362 @@ def cancel_contest(contest_id: str) -> Optional[Dict[str, Any]]:
     conn.commit()
     conn.close()
     return get_contest_by_id(contest_id)
+
+# ========================================================
+# SYSTEM LOGS & AUDIT TRAIL ENGINE
+# ========================================================
+def add_system_log(
+    level: str,
+    module: str,
+    action: str,
+    message: str,
+    user_id: str = None,
+    user_name: str = None,
+    ip_address: str = None,
+    details: dict = None
+) -> Dict[str, Any]:
+    """Ghi nhận một sự kiện nhật ký hệ thống vào CSDL"""
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        log_id = f"LOG-{secrets.randbelow(90000) + 10000}"
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        details_str = json.dumps(details or {}, ensure_ascii=False)
+        cursor.execute("""
+        INSERT INTO system_logs (id, timestamp, level, module, action, message, user_id, user_name, ip_address, details)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            log_id, now, level.upper(), module, action, message,
+            user_id or "SYSTEM", user_name or "System", ip_address or "127.0.0.1", details_str
+        ))
+        conn.commit()
+        conn.close()
+        return {
+            "id": log_id,
+            "timestamp": now,
+            "level": level.upper(),
+            "module": module,
+            "action": action,
+            "message": message,
+            "user_id": user_id or "SYSTEM",
+            "user_name": user_name or "System",
+            "ip_address": ip_address or "127.0.0.1",
+            "details": details or {}
+        }
+    except Exception as e:
+        logger.warning(f"Lỗi ghi system log: {e}")
+        return {}
+
+def list_system_logs(
+    level: Optional[str] = None,
+    module: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0
+) -> List[Dict[str, Any]]:
+    """Truy vấn danh sách nhật ký hệ thống kèm bộ lọc mức độ, module và tìm kiếm từ khóa"""
+    conn = get_db()
+    cursor = conn.cursor()
+    query = "SELECT * FROM system_logs WHERE 1=1"
+    params = []
+
+    if isinstance(level, str) and level.strip() and level.upper() != "ALL":
+        query += " AND level = %s"
+        params.append(level.strip().upper())
+
+    if isinstance(module, str) and module.strip() and module.lower() != "all":
+        query += " AND module = %s"
+        params.append(module.strip())
+
+    if isinstance(search, str) and search.strip():
+        term = f"%{search.strip()}%"
+        query += " AND (action LIKE %s OR message LIKE %s OR user_name LIKE %s OR user_id LIKE %s OR module LIKE %s)"
+        params.extend([term, term, term, term, term])
+
+    safe_limit = limit if isinstance(limit, int) else 100
+    safe_offset = offset if isinstance(offset, int) else 0
+
+    query += " ORDER BY timestamp DESC, id DESC LIMIT %s OFFSET %s"
+    params.extend([max(1, min(safe_limit, 500)), max(0, safe_offset)])
+
+    cursor.execute(query, tuple(params))
+    rows = cursor.fetchall()
+    conn.close()
+
+    result = []
+    for r in rows:
+        item = dict(r)
+        if isinstance(item.get("details"), str):
+            try:
+                item["details"] = json.loads(item["details"])
+            except Exception:
+                item["details"] = {}
+        result.append(item)
+    return result
+
+def get_system_log_stats() -> Dict[str, Any]:
+    """Thống kê tổng số lượng nhật ký phân loại theo level"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT level, COUNT(*) as cnt FROM system_logs GROUP BY level")
+    rows = cursor.fetchall()
+    conn.close()
+
+    stats = {
+        "TOTAL": 0,
+        "INFO": 0,
+        "WARN": 0,
+        "ERROR": 0,
+        "SECURITY": 0,
+        "JUDGE": 0,
+        "CONFIG": 0,
+        "AUTH": 0
+    }
+    for r in rows:
+        lvl = str(r.get("level", "")).upper()
+        cnt = int(r.get("cnt", 0))
+        stats[lvl] = cnt
+        stats["TOTAL"] += cnt
+    return stats
+
+def clear_system_logs() -> bool:
+    """Xóa trắng nhật ký hệ thống"""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM system_logs")
+    conn.commit()
+    conn.close()
+    return True
+
+# ========================================================
+# TOPIC & CATEGORY STATISTICS ENGINE
+# ========================================================
+def get_topic_statistics(student_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Tính toán và trả về toàn diện thống kê theo chủ đề bài tập:
+    - Số lượng bài tập, tỉ lệ hoàn thành (AC / Pass Rate %)
+    - Điểm trung bình, phân bố độ khó
+    - Mức độ thành thạo cá nhân (nếu truyền student_id)
+    - Top sinh viên xuất sắc theo từng chủ đề
+    """
+    from backend.problems import PROBLEMS_DATA
+
+    TOPIC_META = {
+        "Mảng & Hash Map": {
+            "icon": "hash",
+            "color": "emerald",
+            "desc": "Cấu trúc dữ liệu mảng tuyến tính, bảng băm (Hash Map) tra cứu phần tử O(1)."
+        },
+        "Dãy con & Quy hoạch động": {
+            "icon": "trending-up",
+            "color": "cyan",
+            "desc": "Bài toán dãy con tăng dài nhất (LIS), tối ưu không gian trạng thái quy hoạch động."
+        },
+        "Đồ thị có trọng số": {
+            "icon": "share-2",
+            "color": "purple",
+            "desc": "Thuật toán tìm đường đi ngắn nhất Dijkstra, hàng đợi ưu tiên Min-Heap trên đồ thị."
+        },
+        "Quy hoạch động 2D": {
+            "icon": "grid",
+            "color": "amber",
+            "desc": "Bài toán cái túi 0/1 Knapsack, quy hoạch động hai chiều tối ưu mảng 1 chiều."
+        }
+    }
+
+    topics_map = {}
+    topic_order = []
+
+    for pid, pdata in PROBLEMS_DATA.items():
+        topic_name = pdata.get("topic", "Thuật toán Cơ bản")
+        if topic_name not in topics_map:
+            topics_map[topic_name] = {
+                "topic": topic_name,
+                "icon": TOPIC_META.get(topic_name, {}).get("icon", "code"),
+                "color": TOPIC_META.get(topic_name, {}).get("color", "indigo"),
+                "desc": TOPIC_META.get(topic_name, {}).get("desc", "Chủ đề kiến thức lập trình và thuật toán cốt lõi."),
+                "problems": [],
+                "problem_count": 0,
+                "submissions_count": 0,
+                "passed_count": 0,
+                "scores": [],
+                "runtimes": [],
+                "memories": [],
+                "student_attempts": {}
+            }
+            topic_order.append(topic_name)
+
+        topics_map[topic_name]["problems"].append({
+            "id": pid,
+            "name": pdata.get("name", pid),
+            "diff": pdata.get("diff", "Medium"),
+            "contestCode": pdata.get("contestCode", "A"),
+            "timeLimit": pdata.get("timeLimit", "1000 ms"),
+            "memLimit": pdata.get("memLimit", "256 MB")
+        })
+        topics_map[topic_name]["problem_count"] += 1
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM submissions ORDER BY created_at DESC")
+    all_subs = cursor.fetchall()
+    conn.close()
+
+    problem_to_topic = {pid: pdata.get("topic", "Thuật toán Cơ bản") for pid, pdata in PROBLEMS_DATA.items()}
+
+    for sub in all_subs:
+        pid = sub.get("problem_id")
+        topic = problem_to_topic.get(pid, "Thuật toán Cơ bản")
+        if topic not in topics_map:
+            topics_map[topic] = {
+                "topic": topic, "icon": "code", "color": "indigo", "desc": "Chủ đề thuật toán chung",
+                "problems": [], "problem_count": 0, "submissions_count": 0, "passed_count": 0,
+                "scores": [], "runtimes": [], "memories": [], "student_attempts": {}
+            }
+            topic_order.append(topic)
+
+        t_data = topics_map[topic]
+        t_data["submissions_count"] += 1
+
+        raw_score = sub.get("score")
+        try:
+            score_val = float(raw_score)
+        except Exception:
+            score_val = 0.0
+        t_data["scores"].append(score_val)
+
+        is_passed = (score_val >= 7.0) or (str(sub.get("status", "")).lower() in ["accepted", "passed"])
+        if is_passed:
+            t_data["passed_count"] += 1
+
+        rt_str = str(sub.get("runtime", "")).replace("ms", "").strip()
+        try:
+            t_data["runtimes"].append(float(rt_str))
+        except Exception:
+            pass
+
+        mem_str = str(sub.get("memory", "")).replace("MB", "").strip()
+        try:
+            t_data["memories"].append(float(mem_str))
+        except Exception:
+            pass
+
+        sid = sub.get("student_id")
+        sname = sub.get("student_name", sid)
+        if sid not in t_data["student_attempts"]:
+            t_data["student_attempts"][sid] = {
+                "student_id": sid,
+                "student_name": sname,
+                "best_score": score_val,
+                "is_passed": is_passed,
+                "submissions_count": 1,
+                "latest_status": sub.get("status"),
+                "latest_runtime": sub.get("runtime")
+            }
+        else:
+            prev = t_data["student_attempts"][sid]
+            prev["submissions_count"] += 1
+            if score_val > prev["best_score"]:
+                prev["best_score"] = score_val
+                prev["is_passed"] = is_passed
+                prev["latest_status"] = sub.get("status")
+                prev["latest_runtime"] = sub.get("runtime")
+
+    topic_results = []
+    total_all_subs = 0
+    total_all_passed = 0
+    total_scores_sum = 0
+
+    diff_stats = {
+        "Easy": {"total_problems": 0, "submissions": 0, "passed": 0},
+        "Medium": {"total_problems": 0, "submissions": 0, "passed": 0},
+        "Hard": {"total_problems": 0, "submissions": 0, "passed": 0}
+    }
+
+    for pid, pdata in PROBLEMS_DATA.items():
+        diff = pdata.get("diff", "Medium")
+        if diff in diff_stats:
+            diff_stats[diff]["total_problems"] += 1
+
+    for t_name in topic_order:
+        t_data = topics_map[t_name]
+        cnt = t_data["submissions_count"]
+        passed = t_data["passed_count"]
+        pass_rate = round((passed / cnt * 100), 1) if cnt > 0 else 0.0
+        avg_score = round(sum(t_data["scores"]) / len(t_data["scores"]), 1) if t_data["scores"] else 0.0
+        avg_rt = round(sum(t_data["runtimes"]) / len(t_data["runtimes"]), 1) if t_data["runtimes"] else 0.0
+        avg_mem = round(sum(t_data["memories"]) / len(t_data["memories"]), 1) if t_data["memories"] else 0.0
+
+        total_all_subs += cnt
+        total_all_passed += passed
+        total_scores_sum += sum(t_data["scores"])
+
+        for p in t_data["problems"]:
+            d = p.get("diff", "Medium")
+            if d in diff_stats:
+                diff_stats[d]["submissions"] += cnt
+                diff_stats[d]["passed"] += passed
+
+        top_students = list(t_data["student_attempts"].values())
+        top_students.sort(key=lambda x: x["best_score"], reverse=True)
+
+        user_status = None
+        if student_id and student_id in t_data["student_attempts"]:
+            st = t_data["student_attempts"][student_id]
+            mastery = "Thành thạo" if st["best_score"] >= 9.0 else ("Khá tốt" if st["best_score"] >= 7.0 else "Đang rèn luyện")
+            user_status = {
+                "attempted": True,
+                "best_score": st["best_score"],
+                "is_passed": st["is_passed"],
+                "submissions_count": st["submissions_count"],
+                "status": st["latest_status"],
+                "mastery": mastery
+            }
+        elif student_id:
+            user_status = {
+                "attempted": False,
+                "best_score": 0.0,
+                "is_passed": False,
+                "submissions_count": 0,
+                "status": "Chưa làm bài",
+                "mastery": "Chưa bắt đầu"
+            }
+
+        topic_results.append({
+            "topic": t_name,
+            "icon": t_data["icon"],
+            "color": t_data["color"],
+            "desc": t_data["desc"],
+            "problem_count": t_data["problem_count"],
+            "problems": t_data["problems"],
+            "total_submissions": cnt,
+            "passed_submissions": passed,
+            "pass_rate": pass_rate,
+            "avg_score": avg_score,
+            "avg_runtime_ms": avg_rt,
+            "avg_memory_mb": avg_mem,
+            "top_students": top_students[:5],
+            "user_status": user_status
+        })
+
+    overall_avg_score = round(total_scores_sum / total_all_subs, 1) if total_all_subs > 0 else 0.0
+    overall_pass_rate = round(total_all_passed / total_all_subs * 100, 1) if total_all_subs > 0 else 0.0
+
+    active_topics = [t for t in topic_results if t["total_submissions"] > 0]
+    strongest = max(active_topics, key=lambda x: (x["pass_rate"], x["avg_score"]))["topic"] if active_topics else "Chưa có dữ liệu"
+    weakest = min(active_topics, key=lambda x: (x["pass_rate"], x["avg_score"]))["topic"] if active_topics else "Chưa có dữ liệu"
+
+    return {
+        "summary": {
+            "total_topics": len(topic_results),
+            "total_problems": sum(t["problem_count"] for t in topic_results),
+            "total_submissions": total_all_subs,
+            "total_passed": total_all_passed,
+            "overall_pass_rate": overall_pass_rate,
+            "overall_avg_score": overall_avg_score,
+            "strongest_topic": strongest,
+            "weakest_topic": weakest
+        },
+        "topics": topic_results,
+        "difficulty_breakdown": diff_stats
+    }
