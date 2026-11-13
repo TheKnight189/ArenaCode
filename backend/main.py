@@ -32,7 +32,12 @@ from backend.database import (
     list_system_logs,
     get_system_log_stats,
     clear_system_logs,
-    get_topic_statistics
+    get_topic_statistics,
+    list_problems_db,
+    get_problem_by_id_db,
+    create_problem_db,
+    update_problem_db,
+    delete_problem_db
 )
 from backend.models import (
     UserCreate,
@@ -480,25 +485,62 @@ async def cancel_existing_contest(contest_id: str):
     return updated
 
 # ========================================================
-# PROBLEMS REPOSITORY ENDPOINT
+# PROBLEMS REPOSITORY ENDPOINT (PERSISTENT DATABASE)
 # ========================================================
 @app.get("/api/problems", summary="Danh sách bài tập và test case")
 async def get_problems():
-    return PROBLEMS_DATA
+    return list_problems_db()
 
 @app.get("/api/problems/{problem_id}", summary="Chi tiết một bài tập")
 async def get_problem(problem_id: str):
-    p = PROBLEMS_DATA.get(problem_id)
+    p = get_problem_by_id_db(problem_id)
     if not p:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy bài tập!")
     return p
 
-@app.delete("/api/problems/{problem_id}", summary="Xoá đề bài khỏi ngân hàng")
-async def delete_problem(problem_id: str):
-    if problem_id in PROBLEMS_DATA:
-        del PROBLEMS_DATA[problem_id]
-        return {"status": "success", "message": f"Đã xoá đề bài {problem_id} khỏi ngân hàng!"}
-    return {"status": "success", "message": f"Đã gỡ đề bài {problem_id} khỏi hệ thống."}
+@app.post("/api/problems", status_code=status.HTTP_201_CREATED, summary="Tạo đề bài mới")
+async def create_problem_endpoint(req: dict):
+    created = create_problem_db(req)
+    add_system_log(
+        level="CONFIG",
+        module="Problems",
+        action="Problem Created",
+        message=f"Tạo đề bài mới [{created.get('id')}]: {created.get('name')}",
+        user_id="GV-HAUI-01",
+        user_name="Giáo viên / Admin",
+        details={"problem_id": created.get("id"), "name": created.get("name")}
+    )
+    return created
+
+@app.put("/api/problems/{problem_id}", summary="Chỉnh sửa đề bài")
+async def edit_problem_endpoint(problem_id: str, req: dict):
+    updated = update_problem_db(problem_id, req)
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy đề bài để sửa!")
+    add_system_log(
+        level="CONFIG",
+        module="Problems",
+        action="Problem Updated",
+        message=f"Cập nhật nội dung đề bài [{problem_id}]: {updated.get('name')}",
+        user_id="GV-HAUI-01",
+        user_name="Giáo viên / Admin",
+        details={"problem_id": problem_id, "name": updated.get("name")}
+    )
+    return updated
+
+@app.delete("/api/problems/{problem_id}", summary="Xoá vĩnh viễn đề bài khỏi ngân hàng")
+async def delete_problem_endpoint(problem_id: str):
+    deleted = delete_problem_db(problem_id)
+    add_system_log(
+        level="CONFIG",
+        module="Problems",
+        action="Problem Deleted",
+        message=f"Xóa vĩnh viễn đề bài [{problem_id}] khỏi CSDL",
+        user_id="GV-HAUI-01",
+        user_name="Giáo viên / Admin",
+        details={"problem_id": problem_id}
+    )
+    return {"status": "success", "message": f"Đã xóa vĩnh viễn đề bài {problem_id} khỏi CSDL!", "deleted": deleted}
 
 # ========================================================
 # USER MANAGEMENT (CRUD)

@@ -295,7 +295,11 @@
             <button onclick="goToNextProblem()" title="Chuyển sang bài kế tiếp" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-xs flex items-center transition">
               <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
-            <!-- Teacher / Admin delete problem button -->
+            <!-- Teacher / Admin edit & delete problem buttons -->
+            <button id="btn-edit-problem-ide" onclick="triggerEditCurrentProblem()" title="Giáo viên / Admin: Chỉnh sửa thông tin đề bài này" class="hidden px-2 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 rounded-lg border border-amber-500/30 text-xs items-center gap-1 transition">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              <span class="hidden sm:inline font-medium text-[11px]">Sửa đề</span>
+            </button>
             <button id="btn-delete-problem-ide" onclick="triggerDeleteCurrentProblem()" title="Giáo viên: Xoá đề bài hiện tại khỏi ngân hàng đề" class="hidden px-2 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-lg border border-rose-500/30 text-xs items-center gap-1 transition">
               <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               <span class="hidden sm:inline font-medium text-[11px]">Xoá đề</span>
@@ -2334,6 +2338,145 @@
     </div>
   </div>
 
+  <!-- ========================================================= -->
+  <!-- MODAL 14: CHỈNH SỬA ĐỀ BÀI (DÀNH CHO GIÁO VIÊN / ADMIN)    -->
+  <!-- ========================================================= -->
+  <div id="edit-problem-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[120] hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-3xl w-full shadow-2xl relative flex flex-col max-h-[92vh] overflow-hidden">
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3 text-amber-400">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold shrink-0 border border-amber-500/30">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white">Chỉnh sửa Đề bài & Tiêu chí Chấm</h3>
+              <span id="edit-prob-badge-id" class="px-2 py-0.5 rounded text-xs font-mono bg-slate-800 text-amber-300 font-bold">CA-102</span>
+            </div>
+            <p class="text-xs text-slate-400">Cập nhật nội dung bài tập, giới hạn tài nguyên và lưu vĩnh viễn vào CSDL</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeEditProblemModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body (Form) -->
+      <form id="form-edit-problem" onsubmit="submitEditProblem(event)" class="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+        <input type="hidden" id="edit-prob-id" value="">
+
+        <!-- Row 1: Problem Title & Contest Code -->
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div class="sm:col-span-3 space-y-1">
+            <label class="font-semibold text-slate-300 block">Tên đề bài <span class="text-rose-400">*</span></label>
+            <input type="text" id="edit-prob-name" required placeholder="VD: Dãy con tăng dài nhất (LIS)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 transition">
+          </div>
+          <div class="space-y-1">
+            <label class="font-semibold text-slate-300 block">Mã ký hiệu (Bài)</label>
+            <input type="text" id="edit-prob-code" placeholder="A, B, C..." class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-400 transition">
+          </div>
+        </div>
+
+        <!-- Row 2: Difficulty, Topic, Limits -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="space-y-1">
+            <label class="font-semibold text-slate-300 block">Độ khó</label>
+            <select id="edit-prob-diff" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400 transition">
+              <option value="Dễ">Dễ (Easy)</option>
+              <option value="Medium">Medium (Trung bình)</option>
+              <option value="Khó">Khó (Hard)</option>
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="font-semibold text-slate-300 block">Chủ đề bài tập</label>
+            <input type="text" id="edit-prob-topic" placeholder="VD: Dãy con & Quy hoạch động" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-400 transition">
+          </div>
+          <div class="space-y-1">
+            <label class="font-semibold text-slate-300 block">Thời gian (Time Limit)</label>
+            <input type="text" id="edit-prob-timelimit" placeholder="1000 ms hoặc 1.0s" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-cyan-300 font-mono focus:outline-none focus:border-amber-400 transition">
+          </div>
+          <div class="space-y-1">
+            <label class="font-semibold text-slate-300 block">Bộ nhớ (Memory Limit)</label>
+            <input type="text" id="edit-prob-memlimit" placeholder="256 MB" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-cyan-300 font-mono focus:outline-none focus:border-amber-400 transition">
+          </div>
+        </div>
+
+        <!-- Row 3: Description -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-slate-300 block">Nội dung đề bài & Yêu cầu (Hỗ trợ HTML / Văn bản rõ ràng)</label>
+            <span class="text-[10px] text-slate-500">Hiển thị trực tiếp trong khung Đề bài của IDE</span>
+          </div>
+          <textarea id="edit-prob-desc" rows="5" placeholder="Nhập mô tả đề bài, ví dụ và các ràng buộc..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-200 font-sans focus:outline-none focus:border-amber-400 transition text-xs leading-relaxed"></textarea>
+        </div>
+
+        <!-- Row 4: AI Criteria -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-indigo-300 flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span>Tiêu chí AI Auto-Judge (Hướng dẫn chấm cho Gemini AI & AST)</span>
+            </label>
+            <span class="text-[10px] text-indigo-400 font-mono">Gemini AI Engine</span>
+          </div>
+          <textarea id="edit-prob-ai-criteria" rows="2" placeholder="VD: Kiểm tra độ phức tạp thời gian O(n log n), kiểm tra xử lý mảng rỗng và bảo toàn thứ tự..." class="w-full bg-slate-950 border border-indigo-900/60 rounded-xl p-2.5 text-indigo-200 focus:outline-none focus:border-indigo-400 transition text-xs"></textarea>
+        </div>
+
+        <!-- Row 5: Sample Case -->
+        <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+          <div class="font-semibold text-slate-300 flex items-center justify-between text-xs">
+            <span>Ví dụ mẫu (Sample Case)</span>
+            <span class="text-slate-500 text-[10px]">Hiển thị công khai cho sinh viên xem và test thử</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-0.5">Input mẫu</label>
+              <textarea id="edit-prob-sample-in" rows="2" placeholder="VD: [10, 9, 2, 5, 3, 7, 101, 18]" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 font-mono text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"></textarea>
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-0.5">Output mẫu</label>
+              <textarea id="edit-prob-sample-out" rows="2" placeholder="VD: 4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 font-mono text-[11px] text-emerald-400 focus:outline-none focus:border-amber-400"></textarea>
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 block mb-0.5">Giải thích</label>
+              <textarea id="edit-prob-sample-exp" rows="2" placeholder="VD: Dãy con tăng dài nhất là [2, 3, 7, 101], độ dài 4." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-[11px] text-slate-300 focus:outline-none focus:border-amber-400"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 6: Solution Reference (Python Code) -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between">
+            <label class="font-semibold text-emerald-400 flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+              <span>Mã nguồn giải mẫu chuẩn (Python Solution AC)</span>
+            </label>
+            <span class="text-[10px] text-emerald-500 font-mono">Dùng cho AI đối sánh & sinh test case</span>
+          </div>
+          <textarea id="edit-prob-py-correct" rows="4" placeholder="def solve():&#10;    pass" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-emerald-300 font-mono text-xs focus:outline-none focus:border-emerald-400 transition leading-relaxed"></textarea>
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2 text-slate-400 text-[11px]">
+            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Dữ liệu sẽ được lưu tức thời và đồng bộ vào CSDL PostgreSQL / SQLite</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="closeEditProblemModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">
+              Hủy bỏ
+            </button>
+            <button type="submit" id="btn-save-edit-problem" class="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <span>Lưu thay đổi</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <footer class="bg-slate-950 border-t border-slate-800/80 py-6 mt-12 text-center text-xs text-slate-500">
     <div class="max-w-7xl mx-auto px-4">
@@ -2856,6 +2999,7 @@ def solve_lis(arr):
       const btnSwitchAccount = document.getElementById('btn-header-switch-account');
       const btnSwitchText = document.getElementById('btn-header-switch-text');
       const btnProfile = document.getElementById('btn-header-profile');
+      const btnEditProbIde = document.getElementById('btn-edit-problem-ide');
       const btnDeleteProbIde = document.getElementById('btn-delete-problem-ide');
       const headerAiBtn = document.getElementById('header-ai-status');
 
@@ -3024,7 +3168,16 @@ def solve_lis(arr):
         }
       }
 
-      // 2c. Hiển thị / Ẩn nút Xoá đề bài trong IDE (chỉ Giáo viên & Admin)
+      // 2c. Hiển thị / Ẩn nút Sửa đề & Xoá đề bài trong IDE (chỉ Giáo viên & Admin)
+      if (btnEditProbIde) {
+        if (role === 'Giáo viên' || role === 'Admin') {
+          btnEditProbIde.classList.remove('hidden');
+          btnEditProbIde.classList.add('flex');
+        } else {
+          btnEditProbIde.classList.add('hidden');
+          btnEditProbIde.classList.remove('flex');
+        }
+      }
       if (btnDeleteProbIde) {
         if (role === 'Giáo viên' || role === 'Admin') {
           btnDeleteProbIde.classList.remove('hidden');
@@ -4847,9 +5000,14 @@ def solve_lis(arr):
             </div>
           </label>
           ${isTeacherOrAdmin ? `
-          <button type="button" onclick="confirmDeleteProblem('${p.id}', event)" title="Xoá đề bài ${p.id} khỏi ngân hàng" class="p-1.5 text-rose-400/70 hover:text-rose-300 hover:bg-rose-950/80 rounded-lg transition ml-2 shrink-0 border border-transparent hover:border-rose-500/30">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          </button>` : ''}
+          <div class="flex items-center space-x-1 shrink-0 ml-2">
+            <button type="button" onclick="openEditProblemModal('${p.id}', event)" title="Sửa đề bài ${p.id}" class="p-1.5 text-amber-400/80 hover:text-amber-300 hover:bg-amber-950/80 rounded-lg transition border border-transparent hover:border-amber-500/30">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </button>
+            <button type="button" onclick="confirmDeleteProblem('${p.id}', event)" title="Xoá đề bài ${p.id} khỏi ngân hàng" class="p-1.5 text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/80 rounded-lg transition border border-transparent hover:border-rose-500/30">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>` : ''}
         `;
         listContainer.appendChild(card);
       }
@@ -4868,8 +5026,158 @@ def solve_lis(arr):
     }
 
     // ========================================================
-    // TEACHER & ADMIN PROBLEM DELETION LOGIC
+    // TEACHER & ADMIN PROBLEM EDITING & DELETION (PERSISTENT DB)
     // ========================================================
+    function triggerEditCurrentProblem() {
+      if (!checkTeacherOrAdminAccess()) return;
+      openEditProblemModal(activeProblemId);
+    }
+
+    function openEditProblemModal(pId, event) {
+      if (event) event.stopPropagation();
+      if (!checkTeacherOrAdminAccess()) return;
+
+      const probId = pId || activeProblemId;
+      const prob = problemsData[probId];
+      if (!prob) {
+        showToast("Không tìm thấy thông tin đề bài để chỉnh sửa!", "warn");
+        return;
+      }
+
+      const idInput = document.getElementById('edit-prob-id');
+      const badgeId = document.getElementById('edit-prob-badge-id');
+      const nameInput = document.getElementById('edit-prob-name');
+      const codeInput = document.getElementById('edit-prob-code');
+      const diffSelect = document.getElementById('edit-prob-diff');
+      const topicInput = document.getElementById('edit-prob-topic');
+      const timeInput = document.getElementById('edit-prob-timelimit');
+      const memInput = document.getElementById('edit-prob-memlimit');
+      const descInput = document.getElementById('edit-prob-desc');
+      const aiInput = document.getElementById('edit-prob-ai-criteria');
+      const sampleIn = document.getElementById('edit-prob-sample-in');
+      const sampleOut = document.getElementById('edit-prob-sample-out');
+      const sampleExp = document.getElementById('edit-prob-sample-exp');
+      const pyCorrectInput = document.getElementById('edit-prob-py-correct');
+
+      if (idInput) idInput.value = prob.id;
+      if (badgeId) badgeId.innerText = prob.id;
+      if (nameInput) nameInput.value = prob.name || '';
+      if (codeInput) codeInput.value = prob.contestCode || 'A';
+      if (diffSelect) diffSelect.value = prob.diff || 'Medium';
+      if (topicInput) topicInput.value = prob.topic || '';
+      if (timeInput) timeInput.value = prob.timeLimit || '1000 ms';
+      if (memInput) memInput.value = prob.memLimit || '256 MB';
+      if (descInput) descInput.value = prob.desc || '';
+      if (aiInput) aiInput.value = prob.aiCriteria || '';
+
+      const sample0 = (prob.sampleCases && prob.sampleCases.length > 0) ? prob.sampleCases[0] : null;
+      if (sampleIn) sampleIn.value = sample0 ? (sample0.input || sample0.in || '') : '';
+      if (sampleOut) sampleOut.value = sample0 ? (sample0.output || sample0.out || '') : '';
+      if (sampleExp) sampleExp.value = sample0 ? (sample0.explanation || sample0.exp || '') : '';
+
+      if (pyCorrectInput) pyCorrectInput.value = prob.pyCorrect || '';
+
+      const modal = document.getElementById('edit-problem-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeEditProblemModal() {
+      const modal = document.getElementById('edit-problem-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    async function submitEditProblem(event) {
+      if (event) event.preventDefault();
+      if (!checkTeacherOrAdminAccess()) return;
+
+      const pId = document.getElementById('edit-prob-id').value.trim();
+      if (!pId) return;
+
+      const btnSave = document.getElementById('btn-save-edit-problem');
+      const originalBtnText = btnSave ? btnSave.innerHTML : '';
+      if (btnSave) {
+        btnSave.disabled = true;
+        btnSave.innerHTML = `<span class="animate-spin inline-block w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full mr-1"></span> Đang lưu CSDL...`;
+      }
+
+      const name = document.getElementById('edit-prob-name').value.trim();
+      const code = document.getElementById('edit-prob-code').value.trim() || 'A';
+      const diff = document.getElementById('edit-prob-diff').value;
+      const topic = document.getElementById('edit-prob-topic').value.trim() || 'Lập trình cơ bản';
+      const timeLimit = document.getElementById('edit-prob-timelimit').value.trim() || '1000 ms';
+      const memLimit = document.getElementById('edit-prob-memlimit').value.trim() || '256 MB';
+      const desc = document.getElementById('edit-prob-desc').value.trim();
+      const aiCriteria = document.getElementById('edit-prob-ai-criteria').value.trim();
+      const sampleIn = document.getElementById('edit-prob-sample-in').value.trim();
+      const sampleOut = document.getElementById('edit-prob-sample-out').value.trim();
+      const sampleExp = document.getElementById('edit-prob-sample-exp').value.trim();
+      const pyCorrect = document.getElementById('edit-prob-py-correct').value.trim();
+
+      const existingProb = problemsData[pId] || {};
+      const sampleCases = [
+        {
+          input: sampleIn,
+          output: sampleOut,
+          explanation: sampleExp
+        }
+      ];
+
+      const payload = {
+        name: name,
+        contestCode: code,
+        diff: diff,
+        topic: topic,
+        timeLimit: timeLimit,
+        memLimit: memLimit,
+        desc: desc,
+        aiCriteria: aiCriteria,
+        sampleCases: sampleCases,
+        testCases: existingProb.testCases || sampleCases,
+        pyCorrect: pyCorrect || existingProb.pyCorrect || '',
+        pyBuggy: existingProb.pyBuggy || '',
+        cppCorrect: existingProb.cppCorrect || '',
+        cppBuggy: existingProb.cppBuggy || ''
+      };
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/problems/${encodeURIComponent(pId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const updatedFromDb = await res.json();
+          problemsData[pId] = updatedFromDb;
+        } else {
+          problemsData[pId] = { ...existingProb, ...payload, id: pId };
+        }
+      } catch (err) {
+        console.warn("Lưu backend thất bại, cập nhật bộ nhớ:", err);
+        problemsData[pId] = { ...existingProb, ...payload, id: pId };
+      } finally {
+        if (btnSave) {
+          btnSave.disabled = false;
+          btnSave.innerHTML = originalBtnText;
+        }
+      }
+
+      // Cập nhật giao diện IDE & Danh mục bài tập
+      refreshProblemSelectDropdown();
+      if (activeProblemId === pId) {
+        changeProblem(pId);
+      }
+      renderContestProblemsChecklist();
+      closeEditProblemModal();
+      showToast(`Đã lưu thành công các thay đổi của đề bài [${pId}: ${name}] vào CSDL!`, "success");
+    }
+
     let pendingDeleteProblemId = null;
 
     function triggerDeleteCurrentProblem() {
@@ -4916,15 +5224,20 @@ def solve_lis(arr):
       const pId = pendingDeleteProblemId;
       const pName = problemsData[pId]?.name || pId;
 
-      // 1. Gỡ khỏi problemsData
-      delete problemsData[pId];
-
-      // 2. Gửi request xoá ở backend nếu đang kết nối API
+      // 1. Gửi request xoá ở backend CSDL
       try {
-        fetch(`${API_BASE_URL}/problems/${encodeURIComponent(pId)}`, {
+        const res = await fetch(`${API_BASE_URL}/problems/${encodeURIComponent(pId)}`, {
           method: 'DELETE'
-        }).catch(() => {});
-      } catch (err) {}
+        });
+        if (!res.ok) {
+          console.warn("Backend xoá đề trả về mã:", res.status);
+        }
+      } catch (err) {
+        console.warn("Lỗi gọi DELETE /api/problems:", err);
+      }
+
+      // 2. Gỡ khỏi problemsData
+      delete problemsData[pId];
 
       // 3. Cập nhật lại dropdown danh sách bài tập IDE
       refreshProblemSelectDropdown();
@@ -4941,10 +5254,10 @@ def solve_lis(arr):
       renderContestProblemsChecklist();
 
       closeDeleteProblemModal();
-      showToast(`Đã xoá thành công đề bài [${pId}] ${pName} khỏi hệ thống!`, "success");
+      showToast(`Đã xoá vĩnh viễn đề bài [${pId}] ${pName} khỏi CSDL và hệ thống!`, "success");
     }
 
-    function addCustomProblemToBank() {
+    async function addCustomProblemToBank() {
       const pId = document.getElementById('custom-prob-id').value.trim() || ("CA-" + Math.floor(200 + Math.random() * 800));
       const title = document.getElementById('custom-prob-title').value.trim();
       const diff = document.getElementById('custom-prob-diff').value;
@@ -4957,7 +5270,7 @@ def solve_lis(arr):
         return;
       }
 
-      problemsData[pId] = {
+      const newProblemObj = {
         id: pId,
         contestCode: String.fromCharCode(65 + Object.keys(problemsData).length),
         name: title,
@@ -4973,6 +5286,12 @@ def solve_lis(arr):
             explanation: "Test case mẫu của đề thi tự do do Giảng viên khởi tạo."
           }
         ],
+        testCases: [
+          {
+            input: sample || "1",
+            expected: "(Theo yêu cầu đề bài)"
+          }
+        ],
         aiCriteria: aiPrompt,
         pyCorrect: `# Bài giải đề: ${title}\ndef solve():\n    pass\nprint("Custom problem solution ready")`,
         pyBuggy: `def solve(): return -1\nprint(solve())`,
@@ -4980,9 +5299,26 @@ def solve_lis(arr):
         cppBuggy: `#include <iostream>\nusing namespace std;\nint main() { return 0; }`
       };
 
+      // Gửi request tạo đề bài mới lưu vào CSDL backend
+      try {
+        const res = await fetch(`${API_BASE_URL}/problems`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newProblemObj)
+        });
+        if (res.ok) {
+          const created = await res.json();
+          problemsData[pId] = created;
+        } else {
+          problemsData[pId] = newProblemObj;
+        }
+      } catch (e) {
+        problemsData[pId] = newProblemObj;
+      }
+
       renderContestProblemsChecklist();
       refreshProblemSelectDropdown();
-      showToast(`Đã lưu đề bài mới [${pId}: ${title}] vào ngân hàng đề thi!`, "success");
+      showToast(`Đã lưu đề bài mới [${pId}: ${title}] vào CSDL và ngân hàng đề thi!`, "success");
     }
 
     function submitNewContest() {
@@ -7952,6 +8288,7 @@ def solve_lis(arr):
         closeAIConfigModal();
         closeSandboxConfigModal();
         closeLogDetailModal();
+        closeEditProblemModal();
       }
     });
 
@@ -7970,12 +8307,37 @@ def solve_lis(arr):
       }
       updateHeaderUserUI();
       loadNotifications();
+      loadProblemsData();
       if (currentUser && currentUser.role === 'Giáo viên') {
         switchTab('grading');
       } else if (currentUser && currentUser.role === 'Admin') {
         switchTab('accounts');
       }
     });
+
+    async function loadProblemsData() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/problems`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+            problemsData = data;
+            refreshProblemSelectDropdown();
+            if (!problemsData[activeProblemId]) {
+              const keys = Object.keys(problemsData);
+              if (keys.length > 0) {
+                changeProblem(keys[0]);
+              }
+            } else {
+              changeProblem(activeProblemId);
+            }
+            renderContestProblemsChecklist();
+          }
+        }
+      } catch (err) {
+        console.warn("Không thể tải danh sách bài tập từ backend CSDL:", err);
+      }
+    }
 
     async function loadSandboxStatus() {
       try {
@@ -8006,6 +8368,7 @@ def solve_lis(arr):
     if (currentUser && currentUser.role === 'Giáo viên') {
       switchTab('grading');
     }
+    loadProblemsData();
     loadAccountsData();
     loadSubmissionsData();
     loadContestsData();

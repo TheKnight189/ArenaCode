@@ -219,6 +219,28 @@ def _init_postgres_schema(cursor):
     );
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS problems (
+        id VARCHAR(100) PRIMARY KEY,
+        contest_code VARCHAR(20),
+        name VARCHAR(255) NOT NULL,
+        diff VARCHAR(50) NOT NULL,
+        topic VARCHAR(100) NOT NULL,
+        time_limit VARCHAR(50) NOT NULL,
+        mem_limit VARCHAR(50) NOT NULL,
+        "desc" TEXT NOT NULL,
+        ai_criteria TEXT,
+        sample_cases TEXT,
+        test_cases TEXT,
+        py_correct TEXT,
+        py_buggy TEXT,
+        cpp_correct TEXT,
+        cpp_buggy TEXT,
+        created_at VARCHAR(50) NOT NULL,
+        updated_at VARCHAR(50) NOT NULL
+    );
+    """)
+
 def _init_sqlite_schema(cursor):
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
@@ -288,6 +310,28 @@ def _init_sqlite_schema(cursor):
         user_name TEXT,
         ip_address TEXT,
         details TEXT
+    );
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS problems (
+        id TEXT PRIMARY KEY,
+        contest_code TEXT,
+        name TEXT NOT NULL,
+        diff TEXT NOT NULL,
+        topic TEXT NOT NULL,
+        time_limit TEXT NOT NULL,
+        mem_limit TEXT NOT NULL,
+        `desc` TEXT NOT NULL,
+        ai_criteria TEXT,
+        sample_cases TEXT,
+        test_cases TEXT,
+        py_correct TEXT,
+        py_buggy TEXT,
+        cpp_correct TEXT,
+        cpp_buggy TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
     );
     """)
 
@@ -624,6 +668,31 @@ def _seed_data_if_needed(cursor, conn):
             ))
         conn.commit()
 
+    # Kiểm tra problems
+    cursor.execute("SELECT COUNT(*) as count FROM problems")
+    pr_row = cursor.fetchone()
+    pr_count = pr_row["count"] if pr_row else 0
+
+    if pr_count == 0:
+        from backend.problems import PROBLEMS_DATA
+        for pid, p in PROBLEMS_DATA.items():
+            sample_json = json.dumps(p.get("sampleCases", []))
+            test_json = json.dumps(p.get("testCases", []))
+            cursor.execute("""
+            INSERT IGNORE INTO problems (
+                id, contest_code, name, diff, topic, time_limit, mem_limit, `desc`,
+                ai_criteria, sample_cases, test_cases, py_correct, py_buggy,
+                cpp_correct, cpp_buggy, created_at, updated_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                pid, p.get("contestCode", "A"), p.get("name", pid), p.get("diff", "Medium"),
+                p.get("topic", "Thuật toán Cơ bản"), p.get("timeLimit", "1000 ms"), p.get("memLimit", "256 MB"),
+                p.get("desc", ""), p.get("aiCriteria", ""), sample_json, test_json,
+                p.get("pyCorrect", ""), p.get("pyBuggy", ""), p.get("cppCorrect", ""), p.get("cppBuggy", ""),
+                now, now
+            ))
+        conn.commit()
+
 def init_db():
     """Khởi tạo CSDL chính thức (ưu tiên PostgreSQL nếu có DATABASE_URL trên Render, fallback SQLite khi chạy cục bộ)"""
     if DATABASE_URL:
@@ -642,6 +711,7 @@ def init_db():
             _seed_data_if_needed(wrapped_cursor, wrapped_conn)
             conn.commit()
             conn.close()
+            sync_problems_from_db()
             logger.info("🐘 [CodeArena DB] CSDL PostgreSQL trên Render/Cloud đã kết nối và khởi tạo thành công!")
             return
         except Exception as pge:
@@ -657,6 +727,7 @@ def init_db():
         _seed_data_if_needed(wrapped_cursor, wrapped_conn)
         conn.commit()
         conn.close()
+        sync_problems_from_db()
         logger.info(f"📁 [CodeArena DB] CSDL SQLite đã sẵn sàng: {SQLITE_PATH}")
     except Exception as sqle:
         logger.error(f"❌ [CodeArena DB] Lỗi nghiêm trọng khi khởi tạo CSDL SQLite: {sqle}")
@@ -1419,3 +1490,221 @@ def get_topic_statistics(student_id: Optional[str] = None) -> Dict[str, Any]:
         "topics": topic_results,
         "difficulty_breakdown": diff_stats
     }
+
+# ========================================================
+# PERSISTENT PROBLEM BANK MANAGEMENT (CRUD)
+# ========================================================
+def problem_row_to_dict(row: dict) -> dict:
+    """Chuyển đổi một bản ghi bảng problems thành cấu trúc dictionary chuẩn của CodeArena"""
+    item = dict(row)
+    sample_cases = item.get("sample_cases")
+    if isinstance(sample_cases, str):
+        try:
+            item["sampleCases"] = json.loads(sample_cases)
+        except Exception:
+            item["sampleCases"] = []
+    else:
+        item["sampleCases"] = sample_cases or []
+
+    test_cases = item.get("test_cases")
+    if isinstance(test_cases, str):
+        try:
+            item["testCases"] = json.loads(test_cases)
+        except Exception:
+            item["testCases"] = []
+    else:
+        item["testCases"] = test_cases or []
+
+    item["timeLimit"] = item.get("time_limit") or "1000 ms"
+    item["memLimit"] = item.get("mem_limit") or "256 MB"
+    item["contestCode"] = item.get("contest_code") or "A"
+    item["aiCriteria"] = item.get("ai_criteria") or ""
+    item["pyCorrect"] = item.get("py_correct") or ""
+    item["pyBuggy"] = item.get("py_buggy") or ""
+    item["cppCorrect"] = item.get("cpp_correct") or ""
+    item["cppBuggy"] = item.get("cpp_buggy") or ""
+    return item
+
+def sync_problems_from_db():
+    """Đồng bộ toàn bộ đề bài từ CSDL vào dictionary PROBLEMS_DATA trong bộ nhớ máy chủ"""
+    from backend.problems import PROBLEMS_DATA
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM problems ORDER BY id ASC")
+        rows = cursor.fetchall()
+        conn.close()
+
+        if rows:
+            PROBLEMS_DATA.clear()
+            for r in rows:
+                p_dict = problem_row_to_dict(r)
+                PROBLEMS_DATA[p_dict["id"]] = p_dict
+    except Exception as e:
+        logger.warning(f"Lỗi đồng bộ problems từ CSDL: {e}")
+
+def list_problems_db() -> Dict[str, Any]:
+    """Lấy danh sách toàn bộ đề bài từ CSDL (ưu tiên CSDL thực tế)"""
+    from backend.problems import PROBLEMS_DATA
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM problems ORDER BY id ASC")
+        rows = cursor.fetchall()
+        conn.close()
+
+        result = {}
+        for r in rows:
+            p = problem_row_to_dict(r)
+            result[p["id"]] = p
+            PROBLEMS_DATA[p["id"]] = p
+        return result if result else PROBLEMS_DATA
+    except Exception as e:
+        logger.warning(f"Lỗi truy vấn problems từ CSDL: {e}")
+        return PROBLEMS_DATA
+
+def get_problem_by_id_db(problem_id: str) -> Optional[Dict[str, Any]]:
+    """Lấy chi tiết một bài tập từ CSDL"""
+    from backend.problems import PROBLEMS_DATA
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM problems WHERE id = %s", (problem_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            p = problem_row_to_dict(row)
+            PROBLEMS_DATA[problem_id] = p
+            return p
+    except Exception as e:
+        logger.warning(f"Lỗi lấy problem {problem_id} từ CSDL: {e}")
+    return PROBLEMS_DATA.get(problem_id)
+
+def create_problem_db(data: dict) -> Dict[str, Any]:
+    """Tạo đề bài mới và lưu vĩnh viễn vào CSDL (SQLite / PostgreSQL)"""
+    from backend.problems import PROBLEMS_DATA
+    conn = get_db()
+    cursor = conn.cursor()
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    pid = data.get("id") or f"CA-{secrets.randbelow(800) + 200}"
+    contest_code = data.get("contestCode") or data.get("contest_code") or "X"
+    name = data.get("name", "Bài toán mới")
+    diff = data.get("diff", "Medium")
+    topic = data.get("topic", "Thuật toán Cơ bản")
+    time_limit = data.get("timeLimit") or data.get("time_limit") or "1000 ms"
+    mem_limit = data.get("memLimit") or data.get("mem_limit") or "256 MB"
+    desc = data.get("desc") or "<p>Mô tả bài toán</p>"
+    ai_criteria = data.get("aiCriteria") or data.get("ai_criteria") or ""
+
+    sample_cases = data.get("sampleCases", [])
+    sample_json = json.dumps(sample_cases) if not isinstance(sample_cases, str) else sample_cases
+
+    test_cases = data.get("testCases", [])
+    test_json = json.dumps(test_cases) if not isinstance(test_cases, str) else test_cases
+
+    py_correct = data.get("pyCorrect") or ""
+    py_buggy = data.get("pyBuggy") or ""
+    cpp_correct = data.get("cppCorrect") or ""
+    cpp_buggy = data.get("cppBuggy") or ""
+
+    cursor.execute("""
+    INSERT INTO problems (
+        id, contest_code, name, diff, topic, time_limit, mem_limit, `desc`,
+        ai_criteria, sample_cases, test_cases, py_correct, py_buggy,
+        cpp_correct, cpp_buggy, created_at, updated_at
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (
+        pid, contest_code, name, diff, topic, time_limit, mem_limit, desc,
+        ai_criteria, sample_json, test_json, py_correct, py_buggy,
+        cpp_correct, cpp_buggy, now, now
+    ))
+    conn.commit()
+    conn.close()
+
+    sync_problems_from_db()
+    return get_problem_by_id_db(pid)
+
+def update_problem_db(problem_id: str, data: dict) -> Optional[Dict[str, Any]]:
+    """Cập nhật nội dung đề bài và lưu vĩnh viễn vào CSDL"""
+    from backend.problems import PROBLEMS_DATA
+    conn = get_db()
+    cursor = conn.cursor()
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    cursor.execute("SELECT * FROM problems WHERE id = %s", (problem_id,))
+    existing = cursor.fetchone()
+    if not existing:
+        conn.close()
+        return None
+
+    name = data.get("name", existing.get("name"))
+    diff = data.get("diff", existing.get("diff"))
+    topic = data.get("topic", existing.get("topic"))
+    time_limit = data.get("timeLimit") or data.get("time_limit", existing.get("time_limit"))
+    mem_limit = data.get("memLimit") or data.get("mem_limit", existing.get("mem_limit"))
+    desc = data.get("desc", existing.get("desc"))
+    ai_criteria = data.get("aiCriteria") or data.get("ai_criteria", existing.get("ai_criteria"))
+    contest_code = data.get("contestCode") or data.get("contest_code", existing.get("contest_code"))
+
+    sample_cases = data.get("sampleCases")
+    if sample_cases is not None:
+        sample_json = json.dumps(sample_cases) if not isinstance(sample_cases, str) else sample_cases
+    else:
+        sample_json = existing.get("sample_cases")
+
+    test_cases = data.get("testCases")
+    if test_cases is not None:
+        test_json = json.dumps(test_cases) if not isinstance(test_cases, str) else test_cases
+    else:
+        test_json = existing.get("test_cases")
+
+    py_correct = data.get("pyCorrect", existing.get("py_correct"))
+    py_buggy = data.get("pyBuggy", existing.get("py_buggy"))
+    cpp_correct = data.get("cppCorrect", existing.get("cpp_correct"))
+    cpp_buggy = data.get("cppBuggy", existing.get("cpp_buggy"))
+
+    cursor.execute("""
+    UPDATE problems SET
+        contest_code = %s,
+        name = %s,
+        diff = %s,
+        topic = %s,
+        time_limit = %s,
+        mem_limit = %s,
+        `desc` = %s,
+        ai_criteria = %s,
+        sample_cases = %s,
+        test_cases = %s,
+        py_correct = %s,
+        py_buggy = %s,
+        cpp_correct = %s,
+        cpp_buggy = %s,
+        updated_at = %s
+    WHERE id = %s
+    """, (
+        contest_code, name, diff, topic, time_limit, mem_limit, desc,
+        ai_criteria, sample_json, test_json, py_correct, py_buggy,
+        cpp_correct, cpp_buggy, now, problem_id
+    ))
+    conn.commit()
+    conn.close()
+
+    sync_problems_from_db()
+    return get_problem_by_id_db(problem_id)
+
+def delete_problem_db(problem_id: str) -> bool:
+    """Xóa vĩnh viễn đề bài khỏi CSDL và đồng bộ bộ nhớ máy chủ"""
+    from backend.problems import PROBLEMS_DATA
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM problems WHERE id = %s", (problem_id,))
+    deleted = cursor.rowcount > 0
+    conn.commit()
+    conn.close()
+
+    if problem_id in PROBLEMS_DATA:
+        del PROBLEMS_DATA[problem_id]
+
+    sync_problems_from_db()
+    return deleted
