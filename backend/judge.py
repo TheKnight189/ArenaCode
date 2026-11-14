@@ -16,23 +16,31 @@ import urllib.error
 from typing import Optional, Dict, Any
 from backend.problems import PROBLEMS_DATA
 
-# Bảng bộ test case chuẩn cho các bài tập
+# Bảng bộ test case chuẩn cho các bài tập (bao gồm cả Test Hiện và Test Ẩn / Hidden Corner Cases)
 PROBLEM_HARNESS = {
     "CA-101": [
-        ("twoSum([2, 7, 11, 15], 9)", "[0, 1]"),
-        ("twoSum([3, 2, 4], 6)", "[1, 2]"),
-        ("twoSum([3, 3], 6)", "[0, 1]")
+        ("twoSum([2, 7, 11, 15], 9)", "[0, 1]", False),
+        ("twoSum([3, 2, 4], 6)", "[1, 2]", False),
+        ("twoSum([3, 3], 6)", "[0, 1]", False),
+        ("twoSum([1, 5, 8, 12, 19, 23], 24)", "[1, 4]", True),
+        ("twoSum([-3, 4, 3, 90], 0)", "[0, 2]", True)
     ],
     "CA-102": [
-        ("lengthOfLIS([10, 9, 2, 5, 3, 7, 101, 18])", "4"),
-        ("lengthOfLIS([0, 1, 0, 3, 2, 3])", "4"),
-        ("lengthOfLIS([7, 7, 7, 7, 7, 7, 7])", "1")
+        ("lengthOfLIS([10, 9, 2, 5, 3, 7, 101, 18])", "4", False),
+        ("lengthOfLIS([0, 1, 0, 3, 2, 3])", "4", False),
+        ("lengthOfLIS([7, 7, 7, 7, 7, 7, 7])", "1", False),
+        ("lengthOfLIS([1, 3, 6, 7, 9, 4, 10, 5, 6])", "6", True),
+        ("lengthOfLIS([10, 22, 9, 33, 21, 50, 41, 60, 80])", "6", True)
     ],
     "CA-103": [
-        ("dijkstra(4, {1: [(2, 4), (3, 1)], 3: [(2, 2)], 2: [(4, 1)]}, 1)", "[0, 3, 1, 4]")
+        ("dijkstra(4, {1: [(2, 4), (3, 1)], 3: [(2, 2)], 2: [(4, 1)]}, 1)", "[0, 3, 1, 4]", False),
+        ("dijkstra(3, {1: [(2, 1), (3, 4)], 2: [(3, 2)]}, 1)", "[0, 1, 3]", True),
+        ("dijkstra(5, {1: [(2, 2)], 2: [(3, 3)], 3: [(4, 2)], 4: [(5, 3)]}, 1)", "[0, 2, 5, 7, 10]", True)
     ],
     "CA-104": [
-        ("knapsack(50, [10, 20, 30], [60, 100, 120])", "220")
+        ("knapsack(50, [10, 20, 30], [60, 100, 120])", "220", False),
+        ("knapsack(10, [5, 4, 6, 3], [10, 40, 30, 50])", "90", True),
+        ("knapsack(0, [1, 2, 3], [10, 20, 30])", "0", True)
     ]
 }
 
@@ -1006,7 +1014,43 @@ def evaluate_submission(
     3. Thẩm định qua Google Gemini AI REST API (hoặc Native Semantic AI Evaluator chuyên sâu).
     """
     prob = PROBLEMS_DATA.get(problem_id)
-    tests = PROBLEM_HARNESS.get(problem_id, [])
+    
+    # 0. Chuẩn bị bộ test case chuẩn (hỗ trợ cả Test Hiện và Test Ẩn / Hidden Corner Cases)
+    resolved_tests = []
+    if problem_id in PROBLEM_HARNESS:
+        for item in PROBLEM_HARNESS[problem_id]:
+            c_expr = item[0]
+            c_exp = item[1]
+            c_hid = item[2] if len(item) > 2 else False
+            resolved_tests.append({
+                "call_expr": c_expr,
+                "expected": str(c_exp),
+                "hidden": bool(c_hid),
+                "input": c_expr
+            })
+    elif prob and prob.get("testCases"):
+        for tc in prob["testCases"]:
+            inp = tc.get("input", "")
+            exp = tc.get("expected") or tc.get("output", "")
+            hid = bool(tc.get("hidden", False))
+            resolved_tests.append({
+                "call_expr": None,
+                "expected": str(exp),
+                "hidden": hid,
+                "input": str(inp)
+            })
+    elif prob and prob.get("sampleCases"):
+        for sc in prob["sampleCases"]:
+            inp = sc.get("input", "")
+            exp = sc.get("output") or sc.get("expected", "")
+            resolved_tests.append({
+                "call_expr": None,
+                "expected": str(exp),
+                "hidden": False,
+                "input": str(inp)
+            })
+
+    total_tests = len(resolved_tests) if resolved_tests else 3
 
     # 1. Quét trùng lặp mã nguồn với các bài nộp khác (thực tế 100%)
     max_sim = 0.0
@@ -1023,7 +1067,7 @@ def evaluate_submission(
     if exec_res["status"] == "Compile Error":
         return {
             "status": "Compile Error",
-            "test_passed": f"0/{len(tests) if tests else 3}",
+            "test_passed": f"0/{total_tests}",
             "runtime": "0.0 ms",
             "memory": "0.0 MB",
             "score": "0.0",
@@ -1038,7 +1082,7 @@ def evaluate_submission(
     if exec_res["status"] == "Time Limit Exceeded":
         return {
             "status": "Time Limit Exceeded",
-            "test_passed": f"0/{len(tests) if tests else 3}",
+            "test_passed": f"0/{total_tests}",
             "runtime": f"{exec_res['runtime_ms']} ms",
             "memory": f"{exec_res['memory_mb']} MB",
             "score": "0.0",
@@ -1053,7 +1097,7 @@ def evaluate_submission(
     if exec_res["status"] == "Memory Limit Exceeded":
         return {
             "status": "Memory Limit Exceeded",
-            "test_passed": f"0/{len(tests) if tests else 3}",
+            "test_passed": f"0/{total_tests}",
             "runtime": f"{exec_res['runtime_ms']} ms",
             "memory": f"{exec_res['memory_mb']} MB",
             "score": "0.0",
@@ -1068,7 +1112,7 @@ def evaluate_submission(
     if exec_res["status"] == "Security Violation":
         return {
             "status": "Security Violation",
-            "test_passed": f"0/{len(tests) if tests else 3}",
+            "test_passed": f"0/{total_tests}",
             "runtime": f"{exec_res['runtime_ms']} ms",
             "memory": f"{exec_res['memory_mb']} MB",
             "score": "0.0",
@@ -1082,7 +1126,6 @@ def evaluate_submission(
 
     # 3. Phân tích hàm thí sinh và xây dựng Test Harness thực thi
     passed_count = 0
-    total_tests = len(tests) if tests else 3
     test_errors = []
 
     target_funcs = {
@@ -1101,28 +1144,52 @@ def evaluate_submission(
     except Exception:
         pass
 
-    # Tạo alias cho tên hàm nếu thí sinh đặt tên khác (ví dụ: solve_lis -> lengthOfLIS)
+    # Tạo helper runner thông minh cho python (tự động nhận diện hàm chính và hàm phụ)
     alias_code = ""
-    if detected_funcs and target_fn not in detected_funcs:
-        alias_code = f"\n# Dynamic Function Alias\n{target_fn} = {detected_funcs[0]}\n"
+    if detected_funcs:
+        if target_fn not in detected_funcs:
+            alias_code = f"\n# Dynamic Function Alias\n{target_fn} = {detected_funcs[0]}\n"
+        candidate_list = ", ".join(reversed(detected_funcs))
+        alias_code += f"""
+def _codearena_call(*args):
+    candidate_funcs = [{candidate_list}]
+    for fn in candidate_funcs:
+        try:
+            return fn(*args)
+        except TypeError:
+            continue
+    if candidate_funcs:
+        return candidate_funcs[0](*args)
+    raise RuntimeError("Không tìm thấy hàm phù hợp")
+"""
 
-    if tests and language.lower() in ["python", "python 3", "py"]:
+    if resolved_tests and language.lower() in ["python", "python 3", "py"]:
         harness_code = code + alias_code + "\n\n# CodeArena Automated Judge Test Runner\n"
         harness_code += "import sys\n"
         harness_code += "passed_cnt = 0\n"
         
-        for idx, (call_expr, expected_str) in enumerate(tests):
+        for idx, t in enumerate(resolved_tests):
+            if t["call_expr"]:
+                call_expr = t["call_expr"]
+            elif detected_funcs:
+                call_expr = f"_codearena_call({t['input']})"
+            else:
+                call_expr = f"{target_fn}({t['input']})"
+
+            expected_str = t["expected"]
+            is_hid = t["hidden"]
             harness_code += f"""
 try:
     res_{idx} = {call_expr}
-    clean_res = str(res_{idx}).replace(' ', '')
-    clean_exp = "{expected_str}".replace(' ', '')
+    clean_res = str(res_{idx}).replace(' ', '').replace('\\n', '')
+    clean_exp = "{expected_str}".replace(' ', '').replace('\\n', '')
     if clean_res == clean_exp:
         passed_cnt += 1
+        print(f"CASE_{idx}_PASS: hidden={is_hid}")
     else:
-        print(f"CASE_{idx}_FAIL: Expected {expected_str}, got {{res_{idx}}}")
+        print(f"CASE_{idx}_FAIL: hidden={is_hid}, got={{clean_res}}, exp={{clean_exp}}")
 except Exception as e:
-    print(f"CASE_{idx}_ERR: {{e}}")
+    print(f"CASE_{idx}_ERR: hidden={is_hid}, err={{e}}")
 """
         harness_code += "print(f'CODEARENA_PASSED: {passed_cnt}')\n"
 
@@ -1204,8 +1271,8 @@ except Exception as e:
         # Fallback output matching chuẩn xác
         if exec_res["exit_code"] == 0:
             stdout_clean = "".join(exec_res["stdout"].split())
-            if prob:
-                for tc in prob.get("testCases", []):
+            if resolved_tests:
+                for tc in resolved_tests:
                     exp_clean = "".join(tc["expected"].split())
                     if exp_clean in stdout_clean:
                         passed_count += 1
@@ -1285,9 +1352,42 @@ except Exception as e:
         score_val = "0.0"
         ai_rubric = f"[Cảnh báo vi phạm] Phát hiện độ trùng lặp mã nguồn {max_sim}% (vượt ngưỡng cho phép 75.0%). Đề xuất chấm 0 điểm theo quy chế thi."
 
+    # 8. Phân tích chi tiết Test Hiện vs Test Ẩn (Corner Cases)
+    hidden_total = sum(1 for t in resolved_tests if t.get("hidden"))
+    visible_total = total_tests - hidden_total
+    
+    passed_indices = set()
+    if locals().get("harness_res") and harness_res.get("stdout"):
+        for m in re.finditer(r'CASE_(\d+)_PASS', harness_res["stdout"]):
+            passed_indices.add(int(m.group(1)))
+    elif passed_count == total_tests:
+        passed_indices = set(range(total_tests))
+
+    visible_passed = sum(1 for i, t in enumerate(resolved_tests) if i in passed_indices and not t.get("hidden"))
+    hidden_passed = sum(1 for i, t in enumerate(resolved_tests) if i in passed_indices and t.get("hidden"))
+
+    if hidden_total > 0 and status_verdict != "Gian lận" and status_verdict != "Compile Error":
+        if passed_count == total_tests:
+            ai_rubric = f"{ai_rubric} [Hoàn hảo]: Vượt qua toàn bộ {visible_total}/{visible_total} test mẫu công khai và {hidden_total}/{hidden_total} test case ẩn bí mật."
+        elif visible_passed == visible_total and hidden_passed < hidden_total:
+            ai_rubric = f"{ai_rubric} [Lưu ý test ẩn]: Vượt qua trọn vẹn {visible_total}/{visible_total} test công khai, nhưng chưa đạt {hidden_total - hidden_passed}/{hidden_total} test case ẩn (Corner Cases / Biên đặc biệt)."
+
+    test_details = []
+    for idx, t in enumerate(resolved_tests):
+        test_details.append({
+            "id": idx + 1,
+            "hidden": bool(t.get("hidden")),
+            "passed": (idx in passed_indices),
+            "input": t.get("input", ""),
+            "expected": t.get("expected", "")
+        })
+
     return {
         "status": status_verdict,
         "test_passed": f"{passed_count}/{total_tests}",
+        "visible_tests": f"{visible_passed}/{visible_total}",
+        "hidden_tests": f"{hidden_passed}/{hidden_total}",
+        "test_details": test_details,
         "runtime": f"{exec_res['runtime_ms']} ms",
         "memory": f"{exec_res['memory_mb']} MB",
         "score": score_val,

@@ -381,18 +381,25 @@
           <!-- Sub-Tab Content 2: Interactive Test Cases -->
           <div id="prob-pane-testcases" class="hidden p-5 space-y-4 text-xs flex-1 overflow-y-auto max-h-[560px]">
             <div class="flex items-center justify-between gap-2">
-              <span class="font-bold text-white uppercase tracking-wider text-[11px]">Bộ dữ liệu kiểm thử mẫu (Sample Cases):</span>
-              <span class="text-[11px] text-slate-400 whitespace-nowrap shrink-0">3 Bộ kiểm thử</span>
+              <span class="font-bold text-white uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                <span>Bộ dữ liệu kiểm thử (Test Cases):</span>
+              </span>
+              <div id="prob-testcases-count-badge" class="flex items-center gap-2 text-[11px] text-slate-400">
+                <span class="text-slate-400">Đang tải...</span>
+              </div>
             </div>
             
-            <div class="flex items-center space-x-2">
-              <button onclick="selectSampleCase(0)" id="sample-case-btn-0" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white transition whitespace-nowrap">Case 1</button>
-              <button onclick="selectSampleCase(1)" id="sample-case-btn-1" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:text-white transition whitespace-nowrap">Case 2</button>
-              <button onclick="selectSampleCase(2)" id="sample-case-btn-2" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:text-white transition whitespace-nowrap">Case 3</button>
+            <div id="sample-case-buttons-container" class="flex flex-wrap items-center gap-2">
+              <!-- Dynamically populated test buttons -->
             </div>
 
             <div id="sample-case-display" class="space-y-3 pt-1">
               <!-- Populated by JS -->
+            </div>
+
+            <div id="hidden-cases-info-box" class="pt-1">
+              <!-- Security notice for students or inspector for teachers -->
             </div>
           </div>
 
@@ -1825,14 +1832,35 @@
 Đầu vào: nums = [4, 6, 8, 9, 13, 11, 7] -> Đầu ra: 13</textarea>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-medium text-slate-300 mb-1">Test case mẫu (Input &rarr; Output):</label>
-              <input type="text" id="custom-prob-sample" value="Input: [4, 6, 8, 13, 11] -> Output: 13" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none">
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Tiêu chí chấm của AI (AI Prompts):</label>
+            <input type="text" id="custom-prob-ai-prompt" value="Kiểm tra thuật toán nguyên tố O(sqrt(n)), xử lý mảng không có SNT trả về -1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-amber-500">
+          </div>
+
+          <!-- Quản lý Test Cases (Ẩn & Hiện) cho đề bài tự soạn -->
+          <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <span class="font-bold text-white text-xs flex items-center gap-1.5">
+                  <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                  <span>Bộ Test Cases Kiểm Thử (Test Hiện & Test Ẩn / Corner Cases):</span>
+                </span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">Test Hiện cho sinh viên xem mẫu; Test Ẩn bảo mật chỉ dùng khi nộp bài để chống hardcode.</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="addCustomTestCaseRow(false)" class="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-[11px] font-bold transition flex items-center gap-1 whitespace-nowrap">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                  <span>+ Test Hiện (Mẫu)</span>
+                </button>
+                <button type="button" onclick="addCustomTestCaseRow(true)" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[11px] font-bold transition flex items-center gap-1 whitespace-nowrap">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                  <span>+ Test Ẩn (Bí mật)</span>
+                </button>
+              </div>
             </div>
-            <div>
-              <label class="block font-medium text-slate-300 mb-1">Tiêu chí chấm của AI (AI Prompts):</label>
-              <input type="text" id="custom-prob-ai-prompt" value="Kiểm tra thuật toán nguyên tố O(sqrt(n)), xử lý mảng không có SNT trả về -1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 outline-none">
+
+            <div id="custom-prob-testcases-container" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <!-- Dynamically populated by JS -->
             </div>
           </div>
 
@@ -2785,25 +2813,29 @@
           <textarea id="edit-prob-ai-criteria" rows="2" placeholder="VD: Kiểm tra độ phức tạp thời gian O(n log n), kiểm tra xử lý mảng rỗng và bảo toàn thứ tự..." class="w-full bg-slate-950 border border-indigo-900/60 rounded-xl p-2.5 text-indigo-200 focus:outline-none focus:border-indigo-400 transition text-xs"></textarea>
         </div>
 
-        <!-- Row 5: Sample Case -->
-        <div class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
-          <div class="font-semibold text-slate-300 flex items-center justify-between text-xs">
-            <span>Ví dụ mẫu (Sample Case)</span>
-            <span class="text-slate-500 text-[10px]">Hiển thị công khai cho sinh viên xem và test thử</span>
+        <!-- Row 5: Test Cases Manager (Ẩn & Hiện) -->
+        <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white text-xs flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+                <span>Bộ Test Cases Kiểm Thử (Test Hiện & Test Ẩn)</span>
+              </span>
+              <span id="edit-prob-tc-count-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 whitespace-nowrap">0 Tests</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="addEditTestCaseRow(false)" class="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-[11px] font-bold transition flex items-center gap-1 whitespace-nowrap">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                <span>+ Test Hiện (Mẫu)</span>
+              </button>
+              <button type="button" onclick="addEditTestCaseRow(true)" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[11px] font-bold transition flex items-center gap-1 whitespace-nowrap">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <span>+ Test Ẩn (Bí mật)</span>
+              </button>
+            </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div>
-              <label class="text-[11px] text-slate-400 block mb-0.5">Input mẫu</label>
-              <textarea id="edit-prob-sample-in" rows="2" placeholder="VD: [10, 9, 2, 5, 3, 7, 101, 18]" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 font-mono text-[11px] text-slate-200 focus:outline-none focus:border-amber-400"></textarea>
-            </div>
-            <div>
-              <label class="text-[11px] text-slate-400 block mb-0.5">Output mẫu</label>
-              <textarea id="edit-prob-sample-out" rows="2" placeholder="VD: 4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 font-mono text-[11px] text-emerald-400 focus:outline-none focus:border-amber-400"></textarea>
-            </div>
-            <div>
-              <label class="text-[11px] text-slate-400 block mb-0.5">Giải thích</label>
-              <textarea id="edit-prob-sample-exp" rows="2" placeholder="VD: Dãy con tăng dài nhất là [2, 3, 7, 101], độ dài 4." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-[11px] text-slate-300 focus:outline-none focus:border-amber-400"></textarea>
-            </div>
+          <div id="edit-prob-testcases-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+            <!-- Populated dynamically via JS -->
           </div>
         </div>
 
@@ -2893,6 +2925,13 @@
           { input: "nums = [0, 1, 0, 3, 2, 3]", output: "4", explanation: "Dãy con tăng dài nhất là [0, 1, 2, 3], độ dài bằng 4." },
           { input: "nums = [7, 7, 7, 7, 7, 7, 7]", output: "1", explanation: "Dãy số gồm các phần tử bằng nhau, dãy tăng nghiêm ngặt chỉ có 1 phần tử." }
         ],
+        testCases: [
+          { id: 1, input: "[10, 9, 2, 5, 3, 7, 101, 18]", expected: "4", hidden: false, explanation: "Dãy con tăng dài nhất là [2, 3, 7, 101], độ dài bằng 4." },
+          { id: 2, input: "[0, 1, 0, 3, 2, 3]", expected: "4", hidden: false, explanation: "Dãy con tăng dài nhất là [0, 1, 2, 3], độ dài bằng 4." },
+          { id: 3, input: "[7, 7, 7, 7, 7, 7, 7]", expected: "1", hidden: false, explanation: "Dãy số gồm các phần tử bằng nhau, dãy tăng nghiêm ngặt chỉ có 1 phần tử." },
+          { id: 4, input: "[1, 3, 6, 7, 9, 4, 10, 5, 6]", expected: "6", hidden: true, explanation: "Dãy [1, 3, 6, 7, 9, 10] độ dài 6." },
+          { id: 5, input: "[10, 22, 9, 33, 21, 50, 41, 60, 80]", expected: "6", hidden: true, explanation: "Dãy con [10, 22, 33, 50, 60, 80]." }
+        ],
         pyCorrect: `from bisect import bisect_left
 
 def lengthOfLIS(nums: list[int]) -> int:
@@ -2971,6 +3010,13 @@ int main() { cout << 0 << "\\n"; return 0; }`
           { input: "nums = [3, 2, 4], target = 6", output: "[1, 2]", explanation: "Vì nums[1] + nums[2] == 2 + 4 == 6, trả về [1, 2]." },
           { input: "nums = [3, 3], target = 6", output: "[0, 1]", explanation: "nums[0] + nums[1] == 3 + 3 == 6, trả về [0, 1]." }
         ],
+        testCases: [
+          { id: 1, input: "[2, 7, 11, 15], 9", expected: "[0, 1]", hidden: false, explanation: "2 + 7 = 9." },
+          { id: 2, input: "[3, 2, 4], 6", expected: "[1, 2]", hidden: false, explanation: "2 + 4 = 6." },
+          { id: 3, input: "[3, 3], 6", expected: "[0, 1]", hidden: false, explanation: "3 + 3 = 6." },
+          { id: 4, input: "[1, 5, 8, 12, 19, 23], 24", expected: "[1, 4]", hidden: true, explanation: "5 + 19 = 24." },
+          { id: 5, input: "[-3, 4, 3, 90], 0", expected: "[0, 2]", hidden: true, explanation: "-3 + 3 = 0 với số âm." }
+        ],
         pyCorrect: `def twoSum(nums: list[int], target: int) -> list[int]:
     lookup = {}
     for i, num in enumerate(nums):
@@ -3018,6 +3064,11 @@ int main() {
         sampleCases: [
           { input: "V = 4, E = 4, Start = 1\nEdges: [(1,2,4), (1,3,1), (3,2,2), (2,4,1)]", output: "[0, 3, 1, 4]", explanation: "Đường đi 1->3->2 chi phí 3, đường đi 1->3->2->4 chi phí 4." }
         ],
+        testCases: [
+          { id: 1, input: "4, {1: [(2, 4), (3, 1)], 3: [(2, 2)], 2: [(4, 1)]}, 1", expected: "[0, 3, 1, 4]", hidden: false, explanation: "Đồ thị 4 đỉnh nguồn 1." },
+          { id: 2, input: "3, {1: [(2, 1), (3, 4)], 2: [(3, 2)]}, 1", expected: "[0, 1, 3]", hidden: true, explanation: "Đồ thị 3 đỉnh chu trình nhỏ." },
+          { id: 3, input: "5, {1: [(2, 2)], 2: [(3, 3)], 3: [(4, 2)], 4: [(5, 3)]}, 1", expected: "[0, 2, 5, 7, 10]", hidden: true, explanation: "Đồ thị đường thẳng 5 đỉnh." }
+        ],
         pyCorrect: `import heapq
 def dijkstra(n, graph, start):
     dist = [float('inf')] * (n + 1)
@@ -3048,6 +3099,11 @@ print("Dijkstra Completed.")`,
         aiCriteria: "Kiểm tra công thức truy hồi DP O(N*C), tối ưu mảng 1 chiều, xử lý sức chứa 0.",
         sampleCases: [
           { input: "C = 50\nWeights: [10, 20, 30]\nValues: [60, 100, 120]", output: "220", explanation: "Chọn đồ vật 2 (20kg, 100$) và 3 (30kg, 120$) tổng 50kg, giá trị lớn nhất là 220$." }
+        ],
+        testCases: [
+          { id: 1, input: "50, [10, 20, 30], [60, 100, 120]", expected: "220", hidden: false, explanation: "C = 50, chọn đồ vật 2 và 3." },
+          { id: 2, input: "10, [5, 4, 6, 3], [10, 40, 30, 50]", expected: "90", hidden: true, explanation: "C = 10, chọn đồ vật 2 và 4." },
+          { id: 3, input: "0, [1, 2, 3], [10, 20, 30]", expected: "0", hidden: true, explanation: "Balo dung tích 0." }
         ],
         pyCorrect: `def knapsack(C, weights, values):
     n = len(weights)
@@ -3685,55 +3741,226 @@ def solve_lis(arr):
       });
     }
 
+    function renderProblemTestCases(probId) {
+      const prob = problemsData[probId || activeProblemId];
+      const buttonsContainer = document.getElementById('sample-case-buttons-container');
+      const countBadge = document.getElementById('prob-testcases-count-badge');
+      const hiddenBox = document.getElementById('hidden-cases-info-box');
+      if (!prob) return;
+
+      const isTeacherOrAdmin = currentUser && (currentUser.role === 'Giáo viên' || currentUser.role === 'Admin');
+
+      // Chuẩn hóa danh sách test case
+      let testList = [];
+      if (prob.testCases && prob.testCases.length > 0) {
+        testList = prob.testCases;
+      } else if (prob.sampleCases && prob.sampleCases.length > 0) {
+        testList = prob.sampleCases.map((s, idx) => ({
+          id: idx + 1,
+          input: s.input,
+          expected: s.output || s.expected,
+          hidden: false,
+          explanation: s.explanation || ''
+        }));
+      } else {
+        testList = [{ id: 1, input: "Dữ liệu mẫu", expected: "AC", hidden: false, explanation: "Bộ kiểm thử của đề bài." }];
+      }
+
+      const visibleCases = testList.filter(c => !c.hidden);
+      const hiddenCases = testList.filter(c => c.hidden);
+
+      // Cập nhật thống kê badges
+      if (countBadge) {
+        countBadge.innerHTML = `
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
+            ${visibleCases.length} Test Hiện
+          </span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 whitespace-nowrap">
+            ${hiddenCases.length} Test Ẩn
+          </span>
+          <span class="text-slate-400 font-mono text-[11px] whitespace-nowrap">(${testList.length} tổng)</span>
+        `;
+      }
+
+      // Nút chọn test case:
+      // Sinh viên: Chỉ hiển thị các test case hiện
+      // Giáo viên / Admin: Hiển thị toàn bộ các test case (cả Hiện và Ẩn)
+      const displayList = isTeacherOrAdmin ? testList : visibleCases;
+
+      if (buttonsContainer) {
+        buttonsContainer.innerHTML = '';
+        displayList.forEach((tc, idx) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.id = 'sample-case-btn-' + idx;
+          const isAct = (idx === currentSampleCaseIndex);
+          const isHid = Boolean(tc.hidden);
+
+          let baseClass = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ";
+          if (isAct) {
+            baseClass += isHid ? "bg-amber-600 text-white shadow-lg shadow-amber-600/30" : "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30";
+          } else {
+            baseClass += isHid 
+              ? "bg-slate-900 border border-amber-500/30 text-amber-300 hover:text-white hover:bg-slate-800" 
+              : "bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700";
+          }
+          btn.className = baseClass;
+          btn.innerHTML = `
+            ${isHid ? '<svg class="w-3.5 h-3.5 text-amber-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>' : '<svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>'}
+            <span>Case ${idx + 1}${isHid ? ' (Ẩn)' : ''}</span>
+          `;
+          btn.onclick = () => selectSampleCase(idx);
+          buttonsContainer.appendChild(btn);
+        });
+      }
+
+      // Thông báo bảo mật cho test case ẩn (Corner cases)
+      if (hiddenBox) {
+        if (!isTeacherOrAdmin) {
+          hiddenBox.innerHTML = `
+            <div class="p-3 bg-amber-950/20 border border-amber-500/30 rounded-xl flex items-start gap-3 text-xs leading-relaxed">
+              <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              </div>
+              <div class="min-w-0 flex-1">
+                <span class="font-bold text-amber-300 block">Bộ kiểm thử có ${hiddenCases.length} Test Case Ẩn (Corner Cases):</span>
+                <p class="text-slate-400 text-[11px] mt-0.5">
+                  Dữ liệu kiểm thử ẩn được bảo vệ để đánh giá năng lực thuật toán và phòng tránh hardcode. Khi bấm <strong class="text-white">"Nộp bài (Submit)"</strong>, hệ thống sẽ tự động chấm toàn bộ ${testList.length} test cases.
+                </p>
+              </div>
+            </div>
+          `;
+        } else {
+          hiddenBox.innerHTML = `
+            <div class="p-3 bg-indigo-950/30 border border-indigo-500/30 rounded-xl flex items-center justify-between gap-3 text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-indigo-300 font-semibold">Chế độ Giảng viên & Admin: Đang hiển thị trọn vẹn cả Test Hiện và Test Ẩn.</span>
+              </div>
+              <button onclick="openEditProblemModal('${prob.id}')" class="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[11px] font-bold transition flex items-center gap-1 whitespace-nowrap">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                <span>Chỉnh sửa Test Cases đề bài</span>
+              </button>
+            </div>
+          `;
+        }
+      }
+
+      selectSampleCase(0);
+    }
+
     function selectSampleCase(index) {
       currentSampleCaseIndex = index;
       const prob = problemsData[activeProblemId];
       if (!prob) return;
-      const cases = prob.sampleCases || [
-        { input: "Dữ liệu mẫu", output: "AC", explanation: "Bộ kiểm thử của đề bài." }
-      ];
-      const selected = cases[index] || cases[0];
 
-      [0, 1, 2].forEach(i => {
+      const isTeacherOrAdmin = currentUser && (currentUser.role === 'Giáo viên' || currentUser.role === 'Admin');
+
+      let testList = [];
+      if (prob.testCases && prob.testCases.length > 0) {
+        testList = prob.testCases;
+      } else if (prob.sampleCases && prob.sampleCases.length > 0) {
+        testList = prob.sampleCases.map((s, idx) => ({
+          id: idx + 1,
+          input: s.input,
+          expected: s.output || s.expected,
+          hidden: false,
+          explanation: s.explanation || ''
+        }));
+      } else {
+        testList = [{ id: 1, input: "Dữ liệu mẫu", expected: "AC", hidden: false, explanation: "Bộ kiểm thử của đề bài." }];
+      }
+
+      const displayList = isTeacherOrAdmin ? testList : testList.filter(c => !c.hidden);
+      const selected = displayList[index] || displayList[0];
+      if (!selected) return;
+
+      // Cập nhật active button style
+      displayList.forEach((tc, i) => {
         const btn = document.getElementById('sample-case-btn-' + i);
         if (btn) {
-          if (i < cases.length) {
-            btn.classList.remove('hidden');
-            if (i === index) {
-              btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white transition whitespace-nowrap";
-            } else {
-              btn.className = "px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:text-white transition whitespace-nowrap";
-            }
+          const isAct = (i === index);
+          const isHid = Boolean(tc.hidden);
+          let baseClass = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ";
+          if (isAct) {
+            baseClass += isHid ? "bg-amber-600 text-white shadow-lg shadow-amber-600/30" : "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30";
           } else {
-            btn.classList.add('hidden');
+            baseClass += isHid 
+              ? "bg-slate-900 border border-amber-500/30 text-amber-300 hover:text-white hover:bg-slate-800" 
+              : "bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700";
           }
+          btn.className = baseClass;
         }
       });
 
+      const isSelectedHidden = Boolean(selected.hidden);
       const display = document.getElementById('sample-case-display');
       if (display) {
-        display.innerHTML = `
-          <div class="space-y-2">
-            <div>
-              <span class="text-slate-400 text-[11px] block mb-1">Đầu vào (Input):</span>
-              <pre class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 font-mono text-xs text-amber-300 overflow-x-auto whitespace-pre-wrap break-words max-h-40">${selected.input}</pre>
+        if (isSelectedHidden && !isTeacherOrAdmin) {
+          display.innerHTML = `
+            <div class="p-6 bg-slate-950 rounded-xl border border-amber-500/30 text-center space-y-3">
+              <div class="w-12 h-12 mx-auto rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              </div>
+              <h4 class="text-sm font-bold text-white">Test Case Ẩn (Secret Test Case)</h4>
+              <p class="text-xs text-slate-400 max-w-sm mx-auto">
+                Dữ liệu đầu vào và kết quả của bộ kiểm thử này được bảo mật. Khi nộp bài, giải thuật của bạn sẽ được Sandbox kiểm tra tự động trên test case này.
+              </p>
             </div>
-            <div>
-              <span class="text-slate-400 text-[11px] block mb-1">Đầu ra mong đợi (Expected Output):</span>
-              <pre class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 font-mono text-xs text-emerald-400 font-bold overflow-x-auto whitespace-pre-wrap break-words max-h-40">${selected.output}</pre>
+          `;
+        } else {
+          const expOut = selected.expected || selected.output || '';
+          display.innerHTML = `
+            <div class="space-y-2.5">
+              ${isSelectedHidden ? `
+                <div class="px-3 py-1.5 bg-amber-950/40 border border-amber-500/30 rounded-lg flex items-center justify-between text-xs text-amber-300">
+                  <span class="flex items-center gap-1.5 font-bold">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    <span>Test Case Ẩn (Corner Case / Bảo mật)</span>
+                  </span>
+                  <span class="text-[10px] bg-amber-500/20 px-2 py-0.5 rounded font-mono">Dành cho Giảng viên</span>
+                </div>
+              ` : ''}
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-slate-400 text-[11px] block">Đầu vào (Input):</span>
+                  <button type="button" onclick="loadSampleToStdin(${escapeJsParam(selected.input || '')})" class="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                    <span>Nạp vào Custom Stdin</span>
+                  </button>
+                </div>
+                <pre class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 font-mono text-xs text-amber-300 overflow-x-auto whitespace-pre-wrap break-words max-h-40">${escapeHtml(selected.input || '')}</pre>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[11px] block mb-1">Đầu ra mong đợi (Expected Output):</span>
+                <pre class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 font-mono text-xs text-emerald-400 font-bold overflow-x-auto whitespace-pre-wrap break-words max-h-40">${escapeHtml(expOut)}</pre>
+              </div>
+              ${selected.explanation ? `
+              <div>
+                <span class="text-slate-400 text-[11px] block mb-1">Giải thích (Explanation):</span>
+                <div class="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 text-slate-300 text-[11px] leading-relaxed break-words">${escapeHtml(selected.explanation)}</div>
+              </div>` : ''}
             </div>
-            ${selected.explanation ? `
-            <div>
-              <span class="text-slate-400 text-[11px] block mb-1">Giải thích (Explanation):</span>
-              <div class="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 text-slate-300 text-[11px] leading-relaxed break-words">${selected.explanation}</div>
-            </div>` : ''}
-          </div>
-        `;
+          `;
+        }
       }
 
       const customInputBox = document.getElementById('custom-test-input');
+      if (customInputBox && !isSelectedHidden) {
+        customInputBox.placeholder = selected.input || '';
+      }
+    }
+
+    function escapeJsParam(str) {
+      return JSON.stringify(String(str || ''));
+    }
+
+    function loadSampleToStdin(inputValue) {
+      const customInputBox = document.getElementById('custom-test-input');
       if (customInputBox) {
-        customInputBox.placeholder = selected.input;
+        customInputBox.value = inputValue;
+        switchConsoleTab('custom');
+        showToast("Đã nạp Input vào ô Stdin Console để chạy thử!", "success");
       }
     }
 
@@ -3767,7 +3994,7 @@ def solve_lis(arr):
         aiCriteriaBody.innerText = prob.aiCriteria || "Kiểm tra tính đúng đắn thuật toán, độ phức tạp và trường hợp biên.";
       }
 
-      selectSampleCase(0);
+      renderProblemTestCases(probId);
       updateEditorCode();
       updateSubmitButtonState();
     }
@@ -4564,6 +4791,9 @@ def solve_lis(arr):
               problemName: s.problem_name,
               language: s.language,
               testPassed: s.test_passed,
+              visibleTests: s.visible_tests || '',
+              hiddenTests: s.hidden_tests || '',
+              testDetails: s.test_details || [],
               runtime: s.runtime,
               memory: s.memory,
               score: s.score,
@@ -5377,6 +5607,7 @@ def solve_lis(arr):
     function openCreateContestModal() {
       if (!checkTeacherOrAdminAccess()) return;
       renderContestProblemsChecklist();
+      renderCustomProblemTestCases();
       const m = document.getElementById('create-contest-modal');
       if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
     }
@@ -5389,6 +5620,93 @@ def solve_lis(arr):
     // ========================================================
     // TEACHER & ADMIN PROBLEM EDITING & DELETION (PERSISTENT DB)
     // ========================================================
+    let editingProblemTestCases = [];
+
+    function renderEditProblemTestCases() {
+      const container = document.getElementById('edit-prob-testcases-list');
+      const badge = document.getElementById('edit-prob-tc-count-badge');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const visCount = editingProblemTestCases.filter(t => !t.hidden).length;
+      const hidCount = editingProblemTestCases.filter(t => t.hidden).length;
+      if (badge) {
+        badge.innerText = `${visCount} Hiện • ${hidCount} Ẩn (${editingProblemTestCases.length} Tests)`;
+      }
+
+      if (editingProblemTestCases.length === 0) {
+        container.innerHTML = `<div class="p-3 text-center text-xs text-slate-500 italic">Chưa có test case nào. Bấm nút phía trên để thêm test case.</div>`;
+        return;
+      }
+
+      editingProblemTestCases.forEach((tc, idx) => {
+        const row = document.createElement('div');
+        row.className = "p-2.5 bg-slate-900/90 border border-slate-800 rounded-lg space-y-2";
+        row.innerHTML = `
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white">#${idx + 1}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${tc.hidden ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'} flex items-center gap-1">
+                ${tc.hidden ? '🔒 Test Ẩn (Bí mật)' : '👁️ Test Hiện (Mẫu)'}
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="toggleEditTestCaseHidden(${idx})" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+                Chuyển thành ${tc.hidden ? 'Hiện' : 'Ẩn'}
+              </button>
+              <button type="button" onclick="deleteEditTestCaseRow(${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="Xóa test case">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-0.5">Input (Đầu vào):</label>
+              <textarea rows="2" onchange="updateEditTestCaseField(${idx}, 'input', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-xs text-white outline-none focus:border-amber-500">${escapeHtml(tc.input || '')}</textarea>
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-0.5">Expected Output (Đầu ra mong đợi):</label>
+              <textarea rows="2" onchange="updateEditTestCaseField(${idx}, 'expected', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-xs text-emerald-400 outline-none focus:border-amber-500">${escapeHtml(tc.expected || tc.output || '')}</textarea>
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-0.5">Giải thích / Ghi chú:</label>
+            <input type="text" value="${escapeHtml(tc.explanation || '')}" onchange="updateEditTestCaseField(${idx}, 'explanation', this.value)" placeholder="Giải thích cho test case này..." class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-slate-300 outline-none focus:border-slate-600">
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function addEditTestCaseRow(isHidden) {
+      editingProblemTestCases.push({
+        id: editingProblemTestCases.length + 1,
+        input: "",
+        expected: "",
+        hidden: Boolean(isHidden),
+        explanation: isHidden ? "Test case ẩn bí mật" : "Test case mẫu công khai"
+      });
+      renderEditProblemTestCases();
+    }
+
+    function toggleEditTestCaseHidden(idx) {
+      if (editingProblemTestCases[idx]) {
+        editingProblemTestCases[idx].hidden = !editingProblemTestCases[idx].hidden;
+        renderEditProblemTestCases();
+      }
+    }
+
+    function deleteEditTestCaseRow(idx) {
+      editingProblemTestCases.splice(idx, 1);
+      renderEditProblemTestCases();
+    }
+
+    function updateEditTestCaseField(idx, field, value) {
+      if (editingProblemTestCases[idx]) {
+        editingProblemTestCases[idx][field] = value;
+      }
+    }
+
     function triggerEditCurrentProblem() {
       if (!checkTeacherOrAdminAccess()) return;
       openEditProblemModal(activeProblemId);
@@ -5415,9 +5733,6 @@ def solve_lis(arr):
       const memInput = document.getElementById('edit-prob-memlimit');
       const descInput = document.getElementById('edit-prob-desc');
       const aiInput = document.getElementById('edit-prob-ai-criteria');
-      const sampleIn = document.getElementById('edit-prob-sample-in');
-      const sampleOut = document.getElementById('edit-prob-sample-out');
-      const sampleExp = document.getElementById('edit-prob-sample-exp');
       const pyCorrectInput = document.getElementById('edit-prob-py-correct');
 
       if (idInput) idInput.value = prob.id;
@@ -5431,10 +5746,21 @@ def solve_lis(arr):
       if (descInput) descInput.value = prob.desc || '';
       if (aiInput) aiInput.value = prob.aiCriteria || '';
 
-      const sample0 = (prob.sampleCases && prob.sampleCases.length > 0) ? prob.sampleCases[0] : null;
-      if (sampleIn) sampleIn.value = sample0 ? (sample0.input || sample0.in || '') : '';
-      if (sampleOut) sampleOut.value = sample0 ? (sample0.output || sample0.out || '') : '';
-      if (sampleExp) sampleExp.value = sample0 ? (sample0.explanation || sample0.exp || '') : '';
+      // Tải danh sách test cases (cả ẩn và hiện)
+      if (prob.testCases && prob.testCases.length > 0) {
+        editingProblemTestCases = JSON.parse(JSON.stringify(prob.testCases));
+      } else if (prob.sampleCases && prob.sampleCases.length > 0) {
+        editingProblemTestCases = prob.sampleCases.map((s, idx) => ({
+          id: idx + 1,
+          input: s.input || '',
+          expected: s.output || s.expected || '',
+          hidden: false,
+          explanation: s.explanation || ''
+        }));
+      } else {
+        editingProblemTestCases = [];
+      }
+      renderEditProblemTestCases();
 
       if (pyCorrectInput) pyCorrectInput.value = prob.pyCorrect || '';
 
@@ -5475,19 +5801,24 @@ def solve_lis(arr):
       const memLimit = document.getElementById('edit-prob-memlimit').value.trim() || '256 MB';
       const desc = document.getElementById('edit-prob-desc').value.trim();
       const aiCriteria = document.getElementById('edit-prob-ai-criteria').value.trim();
-      const sampleIn = document.getElementById('edit-prob-sample-in').value.trim();
-      const sampleOut = document.getElementById('edit-prob-sample-out').value.trim();
-      const sampleExp = document.getElementById('edit-prob-sample-exp').value.trim();
       const pyCorrect = document.getElementById('edit-prob-py-correct').value.trim();
 
       const existingProb = problemsData[pId] || {};
-      const sampleCases = [
-        {
-          input: sampleIn,
-          output: sampleOut,
-          explanation: sampleExp
-        }
-      ];
+
+      // Xây dựng testCases chuẩn hóa (bao gồm cả Test Hiện và Test Ẩn)
+      const finalTestCases = editingProblemTestCases.map((t, idx) => ({
+        id: idx + 1,
+        input: t.input || '',
+        expected: t.expected || t.output || '',
+        hidden: Boolean(t.hidden),
+        explanation: t.explanation || ''
+      }));
+
+      const visibleCases = finalTestCases.filter(t => !t.hidden).map(t => ({
+        input: t.input,
+        output: t.expected,
+        explanation: t.explanation
+      }));
 
       const payload = {
         name: name,
@@ -5498,8 +5829,8 @@ def solve_lis(arr):
         memLimit: memLimit,
         desc: desc,
         aiCriteria: aiCriteria,
-        sampleCases: sampleCases,
-        testCases: existingProb.testCases || sampleCases,
+        sampleCases: visibleCases.length > 0 ? visibleCases : (finalTestCases.length > 0 ? [{ input: finalTestCases[0].input, output: finalTestCases[0].expected, explanation: "Test mẫu" }] : []),
+        testCases: finalTestCases,
         pyCorrect: pyCorrect || existingProb.pyCorrect || '',
         pyBuggy: existingProb.pyBuggy || '',
         cppCorrect: existingProb.cppCorrect || '',
@@ -5536,7 +5867,7 @@ def solve_lis(arr):
       }
       renderContestProblemsChecklist();
       closeEditProblemModal();
-      showToast(`Đã lưu thành công các thay đổi của đề bài [${pId}: ${name}] vào CSDL!`, "success");
+      showToast(`Đã lưu thành công các thay đổi và bộ test (${finalTestCases.length} tests) của đề [${pId}: ${name}] vào CSDL!`, "success");
     }
 
     let pendingDeleteProblemId = null;
@@ -5618,18 +5949,123 @@ def solve_lis(arr):
       showToast(`Đã xoá vĩnh viễn đề bài [${pId}] ${pName} khỏi CSDL và hệ thống!`, "success");
     }
 
+    // ========================================================
+    // SOẠN ĐỀ BÀI TỰ DO TRONG MODAL TẠO KỲ THI
+    // ========================================================
+    let customProblemTestCases = [
+      { id: 1, input: "[4, 6, 8, 13, 11]", expected: "13", hidden: false, explanation: "Test mẫu 1: Có SNT 11 và 13, lớn nhất là 13" },
+      { id: 2, input: "[2, 3, 5, 7]", expected: "7", hidden: false, explanation: "Test mẫu 2: Toàn bộ là số nguyên tố, lớn nhất là 7" },
+      { id: 3, input: "[4, 6, 8, 9, 10]", expected: "-1", hidden: true, explanation: "Test ẩn 1 (Corner case): Mảng không có SNT nào, trả về -1" },
+      { id: 4, input: "[101, 103, 107, 109]", expected: "109", hidden: true, explanation: "Test ẩn 2 (Dữ liệu lớn): Các số nguyên tố lớn > 100" }
+    ];
+
+    function renderCustomProblemTestCases() {
+      const container = document.getElementById('custom-prob-testcases-container');
+      if (!container) return;
+      container.innerHTML = '';
+      if (customProblemTestCases.length === 0) {
+        container.innerHTML = `<div class="p-3 text-center text-xs text-slate-500 italic">Chưa có test case nào. Bấm nút "+ Test Hiện" hoặc "+ Test Ẩn" phía trên để thêm.</div>`;
+        return;
+      }
+
+      customProblemTestCases.forEach((tc, idx) => {
+        const row = document.createElement('div');
+        row.className = "p-2.5 bg-slate-900/90 border border-slate-800 rounded-lg space-y-2";
+        row.innerHTML = `
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white">#${idx + 1}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${tc.hidden ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'} flex items-center gap-1">
+                ${tc.hidden ? '🔒 Test Ẩn (Bí mật)' : '👁️ Test Hiện (Mẫu)'}
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="toggleCustomTestCaseHidden(${idx})" class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+                Chuyển thành ${tc.hidden ? 'Hiện' : 'Ẩn'}
+              </button>
+              <button type="button" onclick="deleteCustomTestCaseRow(${idx})" class="p-1 text-slate-500 hover:text-rose-400 transition" title="Xóa test case">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-0.5">Input (Đầu vào):</label>
+              <input type="text" value="${escapeHtml(tc.input || '')}" onchange="updateCustomTestCaseField(${idx}, 'input', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono outline-none focus:border-amber-500">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-0.5">Expected Output (Đầu ra mong đợi):</label>
+              <input type="text" value="${escapeHtml(tc.expected || '')}" onchange="updateCustomTestCaseField(${idx}, 'expected', this.value)" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-emerald-400 font-mono outline-none focus:border-amber-500">
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-0.5">Ghi chú / Giải thích:</label>
+            <input type="text" value="${escapeHtml(tc.explanation || '')}" onchange="updateCustomTestCaseField(${idx}, 'explanation', this.value)" placeholder="Ghi chú về test case này..." class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-slate-300 outline-none focus:border-slate-600">
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function addCustomTestCaseRow(isHidden) {
+      customProblemTestCases.push({
+        id: customProblemTestCases.length + 1,
+        input: "",
+        expected: "",
+        hidden: Boolean(isHidden),
+        explanation: isHidden ? "Test case ẩn bí mật" : "Test case mẫu công khai"
+      });
+      renderCustomProblemTestCases();
+    }
+
+    function toggleCustomTestCaseHidden(idx) {
+      if (customProblemTestCases[idx]) {
+        customProblemTestCases[idx].hidden = !customProblemTestCases[idx].hidden;
+        renderCustomProblemTestCases();
+      }
+    }
+
+    function deleteCustomTestCaseRow(idx) {
+      customProblemTestCases.splice(idx, 1);
+      renderCustomProblemTestCases();
+    }
+
+    function updateCustomTestCaseField(idx, field, value) {
+      if (customProblemTestCases[idx]) {
+        customProblemTestCases[idx][field] = value;
+      }
+    }
+
     async function addCustomProblemToBank() {
       const pId = document.getElementById('custom-prob-id').value.trim() || ("CA-" + Math.floor(200 + Math.random() * 800));
       const title = document.getElementById('custom-prob-title').value.trim();
       const diff = document.getElementById('custom-prob-diff').value;
       const desc = document.getElementById('custom-prob-desc').value.trim();
-      const sample = document.getElementById('custom-prob-sample').value.trim();
       const aiPrompt = document.getElementById('custom-prob-ai-prompt').value.trim();
 
       if (!title) {
         showToast("Vui lòng nhập tên đề bài tự do!", "warn");
         return;
       }
+
+      // Xây dựng testCases chuẩn hóa (bao gồm cả Test Hiện và Test Ẩn)
+      const finalTestCases = customProblemTestCases.length > 0 ? customProblemTestCases.map((tc, idx) => ({
+        id: idx + 1,
+        input: tc.input || "",
+        expected: tc.expected || "",
+        hidden: Boolean(tc.hidden),
+        explanation: tc.explanation || ""
+      })) : [
+        { id: 1, input: "[4, 6, 8, 13, 11]", expected: "13", hidden: false, explanation: "Test mẫu 1" },
+        { id: 2, input: "[4, 6, 8, 9, 10]", expected: "-1", hidden: true, explanation: "Test ẩn corner case" }
+      ];
+
+      const visibleCases = finalTestCases.filter(t => !t.hidden).map(t => ({
+        input: t.input,
+        output: t.expected,
+        explanation: t.explanation
+      }));
+      const sampleCases = visibleCases.length > 0 ? visibleCases : [{ input: finalTestCases[0].input, output: finalTestCases[0].expected, explanation: "Test mẫu" }];
 
       const newProblemObj = {
         id: pId,
@@ -5639,20 +6075,9 @@ def solve_lis(arr):
         topic: "Đề bài tự do của Giảng viên",
         timeLimit: "1000 ms",
         memLimit: "256 MB",
-        desc: `<p>${desc}</p><div class="mt-2 bg-slate-950 p-2.5 rounded border border-slate-800 mono text-xs text-amber-300"><strong>Ví dụ mẫu:</strong> ${sample}</div>`,
-        sampleCases: [
-          {
-            input: sample || "Dữ liệu mẫu do Giảng viên thiết lập",
-            output: "(Theo yêu cầu đề bài)",
-            explanation: "Test case mẫu của đề thi tự do do Giảng viên khởi tạo."
-          }
-        ],
-        testCases: [
-          {
-            input: sample || "1",
-            expected: "(Theo yêu cầu đề bài)"
-          }
-        ],
+        desc: `<p>${desc}</p>`,
+        sampleCases: sampleCases,
+        testCases: finalTestCases,
         aiCriteria: aiPrompt,
         pyCorrect: `# Bài giải đề: ${title}\ndef solve():\n    pass\nprint("Custom problem solution ready")`,
         pyBuggy: `def solve(): return -1\nprint(solve())`,
@@ -5679,7 +6104,7 @@ def solve_lis(arr):
 
       renderContestProblemsChecklist();
       refreshProblemSelectDropdown();
-      showToast(`Đã lưu đề bài mới [${pId}: ${title}] vào CSDL và ngân hàng đề thi!`, "success");
+      showToast(`Đã lưu đề bài mới [${pId}: ${title}] với ${finalTestCases.length} test cases (${visibleCases.length} Hiện, ${finalTestCases.length - visibleCases.length} Ẩn) vào CSDL!`, "success");
     }
 
     function submitNewContest() {
@@ -6541,6 +6966,9 @@ def solve_lis(arr):
               problemName: newSub.problem_name,
               language: newSub.language,
               testPassed: newSub.test_passed,
+              visibleTests: newSub.visible_tests || '',
+              hiddenTests: newSub.hidden_tests || '',
+              testDetails: newSub.test_details || [],
               runtime: newSub.runtime,
               memory: newSub.memory,
               score: newSub.score,
@@ -7040,7 +7468,10 @@ def solve_lis(arr):
       document.getElementById('modal-sub-title').innerText = `Chấm bài nộp: ${sub.studentName} (MSV: ${sub.studentId})`;
       document.getElementById('modal-sub-meta').innerText = `${sub.problemId}: ${sub.problemName} • ${sub.language} • Lúc: ${sub.timestamp}`;
       document.getElementById('modal-sub-code').innerText = sub.code;
-      document.getElementById('modal-sub-testcase-badge').innerText = `${sub.testPassed} Test Cases Passed`;
+      const testBadgeText = (sub.visibleTests || sub.hiddenTests)
+        ? `${sub.testPassed} Tests (${sub.visibleTests ? sub.visibleTests + ' Hiện' : ''}${sub.hiddenTests ? ' • ' + sub.hiddenTests + ' Ẩn' : ''})`
+        : `${sub.testPassed} Test Cases Passed`;
+      document.getElementById('modal-sub-testcase-badge').innerText = testBadgeText;
       
       const isCheat = sub.status === 'Gian lận' || sub.similarityRate >= plagiarismThreshold;
       document.getElementById('grade-score-input').value = sub.isGradedByTeacher ? sub.score : (isCheat ? '0.0' : (sub.aiScore || (sub.status === 'Accepted' ? '10.0' : sub.score)));
@@ -8615,7 +9046,7 @@ def solve_lis(arr):
                 rubricItemsHtml = `
                   <div class="flex items-center justify-between text-emerald-400 gap-2">
                     <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg> <span class="break-words">Tính đúng đắn của giải thuật</span></span>
-                    <span class="font-bold shrink-0 whitespace-nowrap ml-2">${sub.testPassed} Pass (Đạt 100%)</span>
+                    <span class="font-bold shrink-0 whitespace-nowrap ml-2">${sub.testPassed} Pass (Đạt 100%${(sub.visibleTests || sub.hiddenTests) ? ' &bull; ' + (sub.visibleTests ? sub.visibleTests + ' Hiện' : '') + (sub.hiddenTests ? ', ' + sub.hiddenTests + ' Ẩn' : '') : ''})</span>
                   </div>
                   <div class="flex items-center justify-between text-emerald-400 gap-2">
                     <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg> <span class="break-words">Tối ưu độ phức tạp thuật toán</span></span>
@@ -8630,7 +9061,7 @@ def solve_lis(arr):
                 rubricItemsHtml = `
                   <div class="flex items-center justify-between ${isRuntimeError ? 'text-rose-400' : 'text-amber-400'} gap-2">
                     <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isRuntimeError ? 'M6 18L18 6M6 6l12 12' : 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'}"/></svg> <span class="break-words">${isRuntimeError ? 'Thực thi mã nguồn (Runtime Error)' : 'Tính đúng đắn của giải thuật'}</span></span>
-                    <span class="font-bold shrink-0 whitespace-nowrap ml-2">${isRuntimeError ? 'Lỗi ngoại lệ' : `${sub.testPassed} Pass`}</span>
+                    <span class="font-bold shrink-0 whitespace-nowrap ml-2">${isRuntimeError ? 'Lỗi ngoại lệ' : `${sub.testPassed} Pass${(sub.visibleTests || sub.hiddenTests) ? ' (' + (sub.visibleTests ? sub.visibleTests + ' Hiện' : '') + (sub.hiddenTests ? ', ' + sub.hiddenTests + ' Ẩn' : '') + ')' : ''}`}</span>
                   </div>
                   <div class="flex items-center justify-between text-amber-400 gap-2">
                     <span class="flex items-center gap-1.5 min-w-0"><svg class="w-3.5 h-3.5 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> <span class="break-words">Tối ưu độ phức tạp thuật toán</span></span>
@@ -8823,6 +9254,7 @@ def solve_lis(arr):
 
     refreshProblemSelectDropdown();
     changeProblem("CA-102");
+    renderCustomProblemTestCases();
     updateContestSelector();
     updateHeaderUserUI();
     loadSandboxStatus();

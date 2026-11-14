@@ -101,6 +101,9 @@ class SubmissionResponse(BaseModel):
     is_graded_by_teacher: bool = False
     graded_by: Optional[str] = None
     graded_at: Optional[str] = None
+    visible_tests: Optional[str] = None
+    hidden_tests: Optional[str] = None
+    test_details: Optional[list] = None
     created_at: str
 
 class GradeSubmissionRequest(BaseModel):

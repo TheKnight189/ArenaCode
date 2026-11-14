@@ -31,9 +31,11 @@ PROBLEMS_DATA = {
             {"input": "[7, 7, 7, 7, 7, 7, 7]", "output": "1", "explanation": "Dãy số gồm các phần tử bằng nhau, dãy tăng nghiêm ngặt chỉ có 1 phần tử."}
         ],
         "testCases": [
-            {"input": "[10, 9, 2, 5, 3, 7, 101, 18]", "expected": "4"},
-            {"input": "[0, 1, 0, 3, 2, 3]", "expected": "4"},
-            {"input": "[7, 7, 7, 7, 7, 7, 7]", "expected": "1"}
+            {"id": 1, "input": "[10, 9, 2, 5, 3, 7, 101, 18]", "expected": "4", "hidden": False, "explanation": "Dãy con tăng dài nhất là [2, 3, 7, 101]."},
+            {"id": 2, "input": "[0, 1, 0, 3, 2, 3]", "expected": "4", "hidden": False, "explanation": "Dãy con [0, 1, 2, 3]."},
+            {"id": 3, "input": "[7, 7, 7, 7, 7, 7, 7]", "expected": "1", "hidden": False, "explanation": "Dãy số gồm các phần tử bằng nhau."},
+            {"id": 4, "input": "[1, 3, 6, 7, 9, 4, 10, 5, 6]", "expected": "6", "hidden": True, "explanation": "Dãy [1, 3, 6, 7, 9, 10] độ dài 6."},
+            {"id": 5, "input": "[10, 22, 9, 33, 21, 50, 41, 60, 80]", "expected": "6", "hidden": True, "explanation": "Dãy con [10, 22, 33, 50, 60, 80]."}
         ],
         "pyCorrect": """from bisect import bisect_left
 
@@ -114,9 +116,11 @@ int main() { cout << 0 << "\\n"; return 0; }"""
             {"input": "nums = [3, 3], target = 6", "output": "[0, 1]", "explanation": "nums[0] + nums[1] == 3 + 3 == 6, trả về [0, 1]."}
         ],
         "testCases": [
-            {"input": "[2, 7, 11, 15], 9", "expected": "[0, 1]"},
-            {"input": "[3, 2, 4], 6", "expected": "[1, 2]"},
-            {"input": "[3, 3], 6", "expected": "[0, 1]"}
+            {"id": 1, "input": "[2, 7, 11, 15], 9", "expected": "[0, 1]", "hidden": False, "explanation": "2 + 7 = 9."},
+            {"id": 2, "input": "[3, 2, 4], 6", "expected": "[1, 2]", "hidden": False, "explanation": "2 + 4 = 6."},
+            {"id": 3, "input": "[3, 3], 6", "expected": "[0, 1]", "hidden": False, "explanation": "3 + 3 = 6."},
+            {"id": 4, "input": "[1, 5, 8, 12, 19, 23], 24", "expected": "[1, 4]", "hidden": True, "explanation": "5 + 19 = 24."},
+            {"id": 5, "input": "[-3, 4, 3, 90], 0", "expected": "[0, 2]", "hidden": True, "explanation": "-3 + 3 = 0 với số âm."}
         ],
         "pyCorrect": """def twoSum(nums: list[int], target: int) -> list[int]:
     lookup = {}
@@ -169,7 +173,9 @@ int main() { cout << "[-1, -1]\\n"; return 0; }"""
             {"input": "V = 4, E = 4, Start = 1\\nEdges: [(1,2,4), (1,3,1), (3,2,2), (2,4,1)]", "output": "[0, 3, 1, 4]", "explanation": "Đường đi 1->3->2 chi phí 3, đường đi 1->3->2->4 chi phí 4."}
         ],
         "testCases": [
-            {"input": "V = 4, E = 4", "expected": "[0, 3, 1, 4]"}
+            {"id": 1, "input": "4, {1: [(2, 4), (3, 1)], 3: [(2, 2)], 2: [(4, 1)]}, 1", "expected": "[0, 3, 1, 4]", "hidden": False, "explanation": "Đồ thị 4 đỉnh nguồn 1."},
+            {"id": 2, "input": "3, {1: [(2, 1), (3, 4)], 2: [(3, 2)]}, 1", "expected": "[0, 1, 3]", "hidden": True, "explanation": "Đồ thị 3 đỉnh chu trình nhỏ."},
+            {"id": 3, "input": "5, {1: [(2, 2)], 2: [(3, 3)], 3: [(4, 2)], 4: [(5, 3)]}, 1", "expected": "[0, 2, 5, 7, 10]", "hidden": True, "explanation": "Đồ thị đường thẳng 5 đỉnh."}
         ],
         "pyCorrect": """import heapq
 def dijkstra(n, graph, start):
@@ -210,7 +216,9 @@ int main() { return 0; }"""
             {"input": "C = 50\\nWeights: [10, 20, 30]\\nValues: [60, 100, 120]", "output": "220", "explanation": "Chọn đồ vật 2 (20kg, 100$) và 3 (30kg, 120$) tổng 50kg, giá trị lớn nhất là 220$."}
         ],
         "testCases": [
-            {"input": "C = 50, W = [10, 20, 30], V = [60, 100, 120]", "expected": "220"}
+            {"id": 1, "input": "50, [10, 20, 30], [60, 100, 120]", "expected": "220", "hidden": False, "explanation": "C = 50, chọn đồ vật 2 và 3."},
+            {"id": 2, "input": "10, [5, 4, 6, 3], [10, 40, 30, 50]", "expected": "90", "hidden": True, "explanation": "C = 10, chọn đồ vật 2 và 4."},
+            {"id": 3, "input": "0, [1, 2, 3], [10, 20, 30]", "expected": "0", "hidden": True, "explanation": "Balo dung tích 0."}
         ],
         "pyCorrect": """def knapsack(C, weights, values):
     n = len(weights)

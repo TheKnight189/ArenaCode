@@ -320,6 +320,10 @@ async def judge_submit(req: JudgeSubmitRequest):
         "graded_at": None
     }
     created = create_submission(sub_data)
+    if created and isinstance(created, dict):
+        created["test_details"] = verdict.get("test_details", [])
+        created["visible_tests"] = verdict.get("visible_tests", "")
+        created["hidden_tests"] = verdict.get("hidden_tests", "")
 
     is_cheat = verdict.get("similarity_rate", 0) > 75.0 or verdict.get("status") == "Gian lận"
     if is_cheat:
