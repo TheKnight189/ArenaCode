@@ -710,7 +710,7 @@
                   MOSS / Winnowing AST Engine
                 </span>
                 <span id="threshold-sensitivity-tag" class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap">
-                  Độ nhạy: Chuẩn (Khuyên dùng)
+                  Kiểm duyệt: Chuẩn (Khuyên dùng 75%)
                 </span>
               </div>
               <h3 class="text-lg font-bold text-white">Cấu hình Ngưỡng Cảnh báo Trùng lặp & Gian lận Mã nguồn</h3>
@@ -746,23 +746,23 @@
               <div class="space-y-1.5">
                 <input type="range" id="threshold-range" min="40" max="95" value="75" step="1" oninput="updateGradingThreshold(this.value)" class="w-full h-2 bg-slate-800 rounded-md appearance-none cursor-pointer accent-rose-500 transition hover:brightness-110">
                 <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono select-none px-0.5">
-                  <span>40% (Nhạy cao)</span>
-                  <span>75% (Chuẩn)</span>
-                  <span>95% (Chặt)</span>
+                  <span title="Ngưỡng thấp: Quét gắt, cảnh báo ngay khi trùng từ 40%">40% (Chặt chẽ)</span>
+                  <span title="Ngưỡng cân bằng: Mức chuẩn tối ưu chống gian lận ICPC">75% (Chuẩn)</span>
+                  <span title="Ngưỡng cao: Nới lỏng, chỉ cảnh báo khi sao chép gần như tuyệt đối">95% (Nới lỏng)</span>
                 </div>
               </div>
 
               <!-- Quick Preset Buttons -->
               <div class="flex items-center gap-1.5 pt-1.5 border-t border-slate-800/80">
                 <span class="text-[10px] text-slate-500 font-medium mr-1 uppercase">Đặt nhanh:</span>
-                <button type="button" onclick="setThresholdPreset(50)" class="flex-1 py-1 px-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-semibold border border-slate-800 transition text-center whitespace-nowrap">
-                  50%
+                <button type="button" id="btn-preset-50" onclick="setThresholdPreset(50)" class="flex-1 py-1 px-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-semibold border border-slate-800 transition text-center whitespace-nowrap" title="Chặt chẽ: Quét gắt, cảnh báo ngay khi trùng từ 50%">
+                  50% (Chặt)
                 </button>
-                <button type="button" onclick="setThresholdPreset(75)" class="flex-1 py-1 px-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-md text-[11px] font-bold border border-amber-500/40 transition text-center whitespace-nowrap">
-                  75%
+                <button type="button" id="btn-preset-75" onclick="setThresholdPreset(75)" class="flex-1 py-1 px-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-md text-[11px] font-bold border border-amber-500/40 transition text-center whitespace-nowrap" title="Chuẩn: Mức cân bằng tối ưu khuyên dùng (75%)">
+                  75% (Chuẩn)
                 </button>
-                <button type="button" onclick="setThresholdPreset(90)" class="flex-1 py-1 px-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-semibold border border-slate-800 transition text-center whitespace-nowrap">
-                  90%
+                <button type="button" id="btn-preset-90" onclick="setThresholdPreset(90)" class="flex-1 py-1 px-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-semibold border border-slate-800 transition text-center whitespace-nowrap" title="Nới lỏng: Chỉ cảnh báo khi sao chép y hệt từ 90%">
+                  90% (Nới lỏng)
                 </button>
               </div>
 
@@ -7152,20 +7152,30 @@ def solve_lis(arr):
       const descEl = document.getElementById('stat-cheat-desc');
       if (descEl) descEl.innerText = `Độ trùng ≥ ${val}%`;
 
-      // Cập nhật nhãn độ nhạy
+      // Cập nhật nhãn mức độ kiểm soát gian lận
       const sensTag = document.getElementById('threshold-sensitivity-tag');
       if (sensTag) {
         if (val < 65) {
-          sensTag.innerText = "Độ nhạy: Rất cao (Nhiều cảnh báo)";
-          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 whitespace-nowrap";
+          sensTag.innerText = `Kiểm duyệt: Chặt chẽ / Nghiêm ngặt (≥ ${val}%)`;
+          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 whitespace-nowrap";
         } else if (val <= 85) {
-          sensTag.innerText = "Độ nhạy: Chuẩn (Khuyên dùng)";
+          sensTag.innerText = `Kiểm duyệt: Chuẩn (Khuyên dùng ${val}%)`;
           sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap";
         } else {
-          sensTag.innerText = "Độ nhạy: Chặt chẽ";
-          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 whitespace-nowrap";
+          sensTag.innerText = `Kiểm duyệt: Nới lỏng (Chỉ bắt sao chép y hệt ≥ ${val}%)`;
+          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 whitespace-nowrap";
         }
       }
+
+      // Cập nhật trạng thái active cho các nút Preset
+      const p50 = document.getElementById('btn-preset-50');
+      const p75 = document.getElementById('btn-preset-75');
+      const p90 = document.getElementById('btn-preset-90');
+      const activeCls = "flex-1 py-1 px-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-md text-[11px] font-bold border border-amber-500/40 transition text-center whitespace-nowrap";
+      const inactiveCls = "flex-1 py-1 px-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-semibold border border-slate-800 transition text-center whitespace-nowrap";
+      if (p50) p50.className = (Number(val) === 50) ? activeCls : inactiveCls;
+      if (p75) p75.className = (Number(val) === 75) ? activeCls : inactiveCls;
+      if (p90) p90.className = (Number(val) === 90) ? activeCls : inactiveCls;
 
       // Đếm số bài vượt ngưỡng hiện tại
       const cheatCount = classSubmissions.filter(s => s.similarityRate >= plagiarismThreshold).length;

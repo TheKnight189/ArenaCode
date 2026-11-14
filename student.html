@@ -5508,20 +5508,30 @@ def solve_lis(arr):
       const descEl = document.getElementById('stat-cheat-desc');
       if (descEl) descEl.innerText = `Độ trùng ≥ ${val}%`;
 
-      // Cập nhật nhãn độ nhạy
+      // Cập nhật nhãn mức độ kiểm soát gian lận
       const sensTag = document.getElementById('threshold-sensitivity-tag');
       if (sensTag) {
         if (val < 65) {
-          sensTag.innerText = "Độ nhạy: Rất cao (Nhiều cảnh báo)";
-          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 whitespace-nowrap";
+          sensTag.innerText = `Kiểm duyệt: Chặt chẽ / Nghiêm ngặt (≥ ${val}%)`;
+          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 whitespace-nowrap";
         } else if (val <= 85) {
-          sensTag.innerText = "Độ nhạy: Chuẩn (Khuyên dùng)";
+          sensTag.innerText = `Kiểm duyệt: Chuẩn (Khuyên dùng ${val}%)`;
           sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 whitespace-nowrap";
         } else {
-          sensTag.innerText = "Độ nhạy: Chặt chẽ";
-          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 whitespace-nowrap";
+          sensTag.innerText = `Kiểm duyệt: Nới lỏng (Chỉ bắt sao chép y hệt ≥ ${val}%)`;
+          sensTag.className = "px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 whitespace-nowrap";
         }
       }
+
+      // Cập nhật trạng thái active cho các nút Preset
+      const p50 = document.getElementById('btn-preset-50');
+      const p75 = document.getElementById('btn-preset-75');
+      const p90 = document.getElementById('btn-preset-90');
+      const activeCls = "flex-1 py-1 px-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-md text-[11px] font-bold border border-amber-500/40 transition text-center whitespace-nowrap";
+      const inactiveCls = "flex-1 py-1 px-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-md text-[11px] font-semibold border border-slate-800 transition text-center whitespace-nowrap";
+      if (p50) p50.className = (Number(val) === 50) ? activeCls : inactiveCls;
+      if (p75) p75.className = (Number(val) === 75) ? activeCls : inactiveCls;
+      if (p90) p90.className = (Number(val) === 90) ? activeCls : inactiveCls;
 
       // Đếm số bài vượt ngưỡng hiện tại
       const cheatCount = classSubmissions.filter(s => s.similarityRate >= plagiarismThreshold).length;
