@@ -29,6 +29,18 @@
     .rounded-t-xl, .rounded-t-md, .rounded-t-lg, .rounded, .rounded-sm {
       border-radius: 0px !important;
     }
+    /* Đảm bảo toàn bộ menu popup dropdown của select luôn có nền tối chữ sáng rõ nét */
+    select {
+      color-scheme: dark;
+    }
+    select option {
+      background-color: #0f172a !important;
+      color: #f8fafc !important;
+    }
+    select option:checked, select option:hover {
+      background-color: #1e293b !important;
+      color: #38bdf8 !important;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
@@ -1008,11 +1020,11 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
-          <div class="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-none border border-slate-800 text-xs text-slate-300">
-            <span class="text-slate-500 text-[11px]">Đối tượng:</span>
-            <select id="topics-filter-scope" onchange="loadTopicStatsData()" class="bg-transparent text-white font-medium outline-none cursor-pointer">
-              <option value="class" selected>Toàn bộ lớp / Hệ thống</option>
-              <option value="me">Cá nhân (Tài khoản hiện tại)</option>
+          <div class="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-none border border-slate-800 text-xs text-slate-300">
+            <span class="text-slate-400 text-[11px] font-semibold">Đối tượng:</span>
+            <select id="topics-filter-scope" onchange="loadTopicStatsData()" class="bg-slate-900 text-slate-100 font-semibold outline-none cursor-pointer px-2.5 py-1 rounded-none border border-slate-700 hover:border-cyan-500/60 focus:border-cyan-400 transition text-xs shadow-inner">
+              <option value="class" class="bg-slate-900 text-slate-100" selected>Toàn bộ lớp / Hệ thống</option>
+              <option value="me" class="bg-slate-900 text-slate-100">Cá nhân (Tài khoản hiện tại)</option>
             </select>
           </div>
           <button onclick="loadTopicStatsData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold rounded-none border border-slate-700 flex items-center gap-1.5 transition cursor-pointer">
