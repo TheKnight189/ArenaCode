@@ -68,8 +68,8 @@ def build_portals():
 
     # Chuyển header AI button thành static badge (không mở modal cấu hình AI key)
     student_html = student_html.replace(
-        'onclick="openAIConfigModal()" id="header-ai-status" title="Bấm để xem hoặc cấu hình Google Gemini API Key" class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30 whitespace-nowrap transition cursor-pointer"',
-        'id="header-ai-status" title="Hệ thống Chấm Tự Động AI AST/Gemini Online" class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-indigo-500/10 text-indigo-300 rounded border border-indigo-500/30 whitespace-nowrap cursor-default"'
+        'onclick="openAIConfigModal()" id="header-ai-status" title="Bấm để xem hoặc cấu hình Google Gemini API Key" class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 rounded-none border border-indigo-500/30 whitespace-nowrap transition cursor-pointer"',
+        'id="header-ai-status" title="Hệ thống Chấm Tự Động AI AST/Gemini Online" class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-indigo-500/10 text-indigo-300 rounded-none border border-indigo-500/30 whitespace-nowrap cursor-default"'
     )
 
     student_path = os.path.join(base_dir, "student.html")
@@ -104,17 +104,17 @@ def build_portals():
 
     # Hiển thị mặc định nav-grading và teacher-contest-action trong HTML cho Giáo viên
     teacher_html = teacher_html.replace(
-        'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
-        'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center space-x-2 whitespace-nowrap bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20 shrink-0"'
+        'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
+        'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-semibold transition flex items-center space-x-2 whitespace-nowrap bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20 shrink-0"'
     )
     teacher_html = teacher_html.replace(
-        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
-        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
+        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
+        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
     )
     # Đổi active tab sang tab-grading (Xem bài & Chấm điểm) ngay khi tải trang cho Giáo viên
     teacher_html = teacher_html.replace(
-        'id="nav-ide" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center space-x-2 whitespace-nowrap bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 shadow-sm shadow-indigo-500/20 shrink-0"',
-        'id="nav-ide" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
+        'id="nav-ide" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-semibold transition flex items-center space-x-2 whitespace-nowrap bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 shadow-sm shadow-indigo-500/20 shrink-0"',
+        'id="nav-ide" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
     )
     teacher_html = teacher_html.replace(
         '<section id="tab-ide" class="space-y-4">',
@@ -168,16 +168,16 @@ def build_portals():
 
     # Hiển thị mặc định cả nav-grading, nav-accounts, teacher-contest-action trong HTML cho Admin
     admin_html = admin_html.replace(
-        'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
-        'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
+        'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
+        'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
     )
     admin_html = admin_html.replace(
-        'id="nav-accounts" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
-        'id="nav-accounts" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
+        'id="nav-accounts" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
+        'id="nav-accounts" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
     )
     admin_html = admin_html.replace(
-        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
-        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
+        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
+        'id="nav-logs" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
     )
     admin_html = admin_html.replace(
         'id="teacher-contest-action" class="hidden items-center gap-2" style="display: none;"',
