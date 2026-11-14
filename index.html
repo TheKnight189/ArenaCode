@@ -1664,18 +1664,40 @@
                 </div>
               </div>
 
-              <!-- Fun Emoji Avatars -->
+              <!-- Developer SVG Icon Avatars -->
               <div>
-                <span class="text-slate-400 text-[11px] block mb-1">Hoặc chọn biểu tượng Avatar nhanh:</span>
-                <div class="flex flex-wrap gap-1.5">
-                  <button type="button" onclick="setProfileAvatarEmoji('👨‍💻')" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">👨‍💻</button>
-                  <button type="button" onclick="setProfileAvatarEmoji('👩‍💻')" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">👩‍💻</button>
-                  <button type="button" onclick="setProfileAvatarEmoji('🚀')" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">🚀</button>
-                  <button type="button" onclick="setProfileAvatarEmoji('⚡')" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">⚡</button>
-                  <button type="button" onclick="setProfileAvatarEmoji('🎓')" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">🎓</button>
-                  <button type="button" onclick="setProfileAvatarEmoji('💻')" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">💻</button>
-                  <button type="button" onclick="setProfileAvatarEmoji('🎯')" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">🎯</button>
-                  <button type="button" onclick="setProfileAvatarEmoji('💡')" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 flex items-center justify-center text-sm transition">💡</button>
+                <span class="text-slate-400 text-[11px] block mb-1">Hoặc chọn biểu tượng Icon đại diện:</span>
+                <div class="flex flex-wrap gap-1.5" id="profile-avatar-icons-list">
+                  <button type="button" onclick="setProfileAvatarIcon('code')" title="Mã nguồn (Code)" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-indigo-400 text-indigo-400 flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                  </button>
+                  <button type="button" onclick="setProfileAvatarIcon('terminal')" title="Terminal / Console" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-emerald-400 text-emerald-400 flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  </button>
+                  <button type="button" onclick="setProfileAvatarIcon('cpu')" title="Vi xử lý / Thuật toán" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-cyan-400 text-cyan-400 flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                  </button>
+                  <button type="button" onclick="setProfileAvatarIcon('lightning')" title="Sấm sét / Tốc độ" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-amber-400 text-amber-400 flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  </button>
+                  <button type="button" onclick="setProfileAvatarIcon('academic')" title="Học vị / HaUI" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-purple-400 text-purple-400 flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/></svg>
+                  </button>
+                  <button type="button" onclick="setProfileAvatarIcon('shield')" title="Bảo mật / Liêm chính" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-rose-400 text-rose-400 flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                  </button>
+                  <button type="button" onclick="setProfileAvatarIcon('target')" title="Mục tiêu / Điểm tối đa" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-emerald-400 text-emerald-400 flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </button>
+                  <button type="button" onclick="setProfileAvatarIcon('sparkles')" title="Ý tưởng / AI Sư phạm" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-yellow-400 text-yellow-400 flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                  </button>
+                  <button type="button" onclick="setProfileAvatarIcon('database')" title="Cơ sở dữ liệu / Server" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-blue-400 text-blue-400 flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+                  </button>
+                  <button type="button" onclick="setProfileAvatarIcon('cube')" title="Cấu trúc dữ liệu" class="w-8 h-8 rounded-none bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-teal-400 text-teal-400 flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                  </button>
                 </div>
               </div>
 
@@ -3413,12 +3435,57 @@ def solve_lis(arr):
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
 
-    // Helper render Avatar linh hoạt: hỗ trợ Ảnh URL, Base64 ảnh upload, Emoji hoặc Chữ viết tắt
+    // Bản đồ biểu tượng SVG Icon đại diện cho lập trình viên (Developer Avatars)
+    const AVATAR_SVG_MAP = {
+      'code': '<svg class="w-full h-full p-1.5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>',
+      'terminal': '<svg class="w-full h-full p-1.5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>',
+      'cpu': '<svg class="w-full h-full p-1.5 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>',
+      'lightning': '<svg class="w-full h-full p-1.5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>',
+      'academic': '<svg class="w-full h-full p-1.5 text-purple-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/></svg>',
+      'shield': '<svg class="w-full h-full p-1.5 text-rose-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>',
+      'target': '<svg class="w-full h-full p-1.5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+      'sparkles': '<svg class="w-full h-full p-1.5 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>',
+      'database': '<svg class="w-full h-full p-1.5 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>',
+      'cube': '<svg class="w-full h-full p-1.5 text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>'
+    };
+
+    function getAvatarSvgIcon(key, sizeClass) {
+      if (!AVATAR_SVG_MAP[key]) return null;
+      let svg = AVATAR_SVG_MAP[key];
+      if (sizeClass) {
+        svg = svg.replace('w-full h-full p-1.5', `${sizeClass} p-0`);
+      }
+      return svg;
+    }
+
+    function formatAvatarHtml(avatarVal, nameVal, sizeClass) {
+      if (!avatarVal) avatarVal = getInitials(nameVal || "SV");
+      if (typeof avatarVal === 'string' && (avatarVal.startsWith('http://') || avatarVal.startsWith('https://') || avatarVal.startsWith('data:image/'))) {
+        return `<img src="${avatarVal}" alt="Avatar" class="w-full h-full object-cover rounded-none">`;
+      }
+      if (typeof avatarVal === 'string' && avatarVal.startsWith('icon:')) {
+        const iconKey = avatarVal.replace('icon:', '');
+        const svg = getAvatarSvgIcon(iconKey, sizeClass || 'w-4 h-4');
+        if (svg) return svg;
+      }
+      if (typeof avatarVal === 'string' && avatarVal.includes('<svg')) {
+        return avatarVal;
+      }
+      return escapeHtml(avatarVal);
+    }
+
+    // Helper render Avatar linh hoạt: hỗ trợ Ảnh URL, Base64 ảnh upload, SVG Icon hoặc Chữ viết tắt
     function renderAvatarElement(el, avatarVal, nameVal) {
       if (!el) return;
       if (!avatarVal) avatarVal = getInitials(nameVal || "SV");
       if (typeof avatarVal === 'string' && (avatarVal.startsWith('http://') || avatarVal.startsWith('https://') || avatarVal.startsWith('data:image/'))) {
         el.innerHTML = `<img src="${avatarVal}" alt="Avatar" class="w-full h-full object-cover rounded-full">`;
+      } else if (typeof avatarVal === 'string' && avatarVal.startsWith('icon:')) {
+        const iconKey = avatarVal.replace('icon:', '');
+        const svg = getAvatarSvgIcon(iconKey, 'w-4 h-4 sm:w-5 sm:h-5 text-white');
+        el.innerHTML = svg || `<span class="truncate font-bold">${escapeHtml(avatarVal)}</span>`;
+      } else if (typeof avatarVal === 'string' && avatarVal.includes('<svg')) {
+        el.innerHTML = avatarVal;
       } else {
         el.innerHTML = `<span class="truncate font-bold">${escapeHtml(avatarVal)}</span>`;
       }
@@ -4392,7 +4459,7 @@ def solve_lis(arr):
       const currentAvatar = currentUser.avatar || getInitials(currentUser.name || "SV");
       if (avatarVal) avatarVal.value = currentAvatar;
       if (avatarTextInput) {
-        if (!currentAvatar.startsWith('http') && !currentAvatar.startsWith('data:image')) {
+        if (!currentAvatar.startsWith('http') && !currentAvatar.startsWith('data:image') && !currentAvatar.startsWith('icon:')) {
           avatarTextInput.value = currentAvatar;
         } else {
           avatarTextInput.value = "";
@@ -4436,6 +4503,12 @@ def solve_lis(arr):
 
       if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:image/'))) {
         preview.innerHTML = `<img src="${val}" alt="Avatar" class="w-full h-full object-cover rounded-full">`;
+      } else if (typeof val === 'string' && val.startsWith('icon:')) {
+        const iconKey = val.replace('icon:', '');
+        const svg = getAvatarSvgIcon(iconKey, 'w-10 h-10 text-white');
+        preview.innerHTML = svg ? `<div class="w-full h-full flex items-center justify-center">${svg}</div>` : `<span class="truncate font-bold text-2xl text-white">${escapeHtml(val)}</span>`;
+      } else if (typeof val === 'string' && val.includes('<svg')) {
+        preview.innerHTML = val;
       } else {
         preview.innerHTML = `<span class="truncate font-bold text-2xl text-white">${escapeHtml(val)}</span>`;
       }
@@ -4455,10 +4528,16 @@ def solve_lis(arr):
       showToast(`Đã tạo ký hiệu đại diện: "${initials}"`, "info");
     }
 
-    function setProfileAvatarEmoji(emoji) {
+    function setProfileAvatarIcon(key) {
+      const val = `icon:${key}`;
       const textInput = document.getElementById('profile-avatar-text-input');
-      if (textInput) textInput.value = emoji;
-      updateProfileAvatarPreview(emoji);
+      if (textInput) textInput.value = "";
+      updateProfileAvatarPreview(val);
+      showToast(`Đã chọn Icon: "${key}" làm ảnh đại diện!`, "info");
+    }
+
+    function setProfileAvatarEmoji(emoji) {
+      setProfileAvatarIcon(emoji);
     }
 
     function applyProfileAvatarUrl() {
@@ -5291,8 +5370,8 @@ def solve_lis(arr):
         tr.innerHTML = `
           <td class="p-3.5 pl-4">
             <div class="flex items-center space-x-3">
-              <div class="w-8 h-8 rounded-none ${avatarBg} flex items-center justify-center font-bold text-xs shrink-0 shadow">
-                ${u.avatar || 'U'}
+              <div class="w-8 h-8 rounded-none ${avatarBg} flex items-center justify-center font-bold text-xs shrink-0 shadow overflow-hidden">
+                ${formatAvatarHtml(u.avatar, u.name, 'w-4 h-4 text-white')}
               </div>
               <div>
                 <p class="font-bold text-white text-xs whitespace-nowrap font-sans">${u.name}</p>
