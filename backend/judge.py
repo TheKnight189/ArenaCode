@@ -11,6 +11,7 @@ import re
 import sys
 import time
 import subprocess
+import threading
 import urllib.request
 import urllib.error
 from typing import Optional, Dict, Any
@@ -88,11 +89,15 @@ from backend.queue_manager import get_queue_stats, update_redis_config
 
 ACTIVE_SANDBOX_CONFIG = dict(DEFAULT_SANDBOX_CONFIG)
 
+# Hằng số giới hạn tài nguyên mặc định của Sandbox
+TIME_LIMIT_SECONDS: float = 3.0
+MEMORY_LIMIT_MB: float = 256.0
+
 def get_current_memory_limit() -> float:
-    return float(ACTIVE_SANDBOX_CONFIG.get("memory_limit_mb", 256.0))
+    return float(ACTIVE_SANDBOX_CONFIG.get("memory_limit_mb", MEMORY_LIMIT_MB))
 
 def get_current_timeout() -> float:
-    return float(ACTIVE_SANDBOX_CONFIG.get("time_limit_sec", 3.0))
+    return float(ACTIVE_SANDBOX_CONFIG.get("time_limit_sec", TIME_LIMIT_SECONDS))
 
 def is_network_blocked() -> bool:
     return bool(ACTIVE_SANDBOX_CONFIG.get("network_blocked", True))
@@ -312,7 +317,7 @@ def execute_code_docker(code: str, language: str = "python", stdin: str = "", ti
 
         proc = subprocess.run(
             docker_cmd,
-            input=stdin,
+            input=stdin if stdin is not None else "",
             capture_output=True,
             text=True,
             timeout=timeout + 2.0,
@@ -420,71 +425,74 @@ def execute_code_native_jail(code: str, language: str = "python", stdin: str = "
             preexec_fn=preexec_fn
         )
 
-        # Đặt mức ưu tiên CPU thấp
-        try:
-            import psutil
-            p = psutil.Process(proc.pid)
-            if sys.platform == 'win32':
-                p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
-            else:
-                p.nice(10)
-        except Exception:
-            p = None
+        # Thread giám sát bộ nhớ RAM theo thời gian thực (Real-time memory monitor)
+        peak_memory_mb = [12.0]
+        killed_mle = [False]
+        stop_monitor = threading.Event()
 
-        # Gửi dữ liệu stdin nếu có
-        if stdin:
+        def _monitor():
             try:
-                proc.stdin.write(stdin)
-                proc.stdin.flush()
-                proc.stdin.close()
+                import psutil
+                p = psutil.Process(proc.pid)
+                if sys.platform == 'win32':
+                    p.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+                else:
+                    p.nice(10)
+                while not stop_monitor.is_set() and proc.poll() is None:
+                    try:
+                        mem = p.memory_info().rss / (1024 * 1024)
+                        if mem > peak_memory_mb[0]:
+                            peak_memory_mb[0] = mem
+                        if peak_memory_mb[0] > mem_limit:
+                            killed_mle[0] = True
+                            proc.kill()
+                            break
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        break
+                    time.sleep(0.01)
             except Exception:
                 pass
 
-        # Giám sát bộ nhớ RAM theo thời gian thực (Real-time memory monitor)
-        deadline = time.perf_counter() + timeout
-        while proc.poll() is None:
-            now = time.perf_counter()
-            if now > deadline:
-                proc.kill()
-                t_elapsed = (now - t_start) * 1000.0
-                return {
-                    "stdout": "",
-                    "stderr": f"Lỗi: Quá thời gian thực thi (Time Limit Exceeded - vượt quá {timeout}s). Vui lòng tối ưu vòng lặp hoặc giải thuật.",
-                    "exit_code": -1,
-                    "runtime_ms": round(t_elapsed, 1),
-                    "memory_mb": round(peak_memory_mb, 1),
-                    "status": "Time Limit Exceeded"
-                }
+        monitor_thread = threading.Thread(target=_monitor, daemon=True)
+        monitor_thread.start()
 
-            if p:
-                try:
-                    mem = p.memory_info().rss / (1024 * 1024)
-                    if mem > peak_memory_mb:
-                        peak_memory_mb = mem
-                    if peak_memory_mb > mem_limit:
-                        proc.kill()
-                        killed_mle = True
-                        break
-                except Exception:
-                    pass
-
-            time.sleep(0.01)
-
-        stdout_data, stderr_data = proc.communicate()
-        t_elapsed = (time.perf_counter() - t_start) * 1000.0
-
-        if killed_mle:
+        # Truyền dữ liệu đầu vào stdin trực tiếp qua communicate() - KHÔNG đóng thủ công trước khi gọi communicate()
+        input_data = stdin if stdin is not None else ""
+        try:
+            stdout_data, stderr_data = proc.communicate(input=input_data, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            try:
+                stdout_data, stderr_data = proc.communicate(timeout=0.5)
+            except Exception:
+                stdout_data, stderr_data = "", ""
+            t_elapsed = (time.perf_counter() - t_start) * 1000.0
             return {
-                "stdout": stdout_data.strip(),
-                "stderr": f"Lỗi: Vượt quá giới hạn bộ nhớ (Memory Limit Exceeded - tiêu tốn {round(peak_memory_mb, 1)}MB / tối đa {int(mem_limit)}MB RAM). Tiến trình đã bị Sandbox dừng khẩn cấp.",
+                "stdout": (stdout_data or "").strip(),
+                "stderr": f"Lỗi: Quá thời gian thực thi (Time Limit Exceeded - vượt quá {timeout}s). Vui lòng tối ưu vòng lặp hoặc giải thuật.",
                 "exit_code": -1,
                 "runtime_ms": round(t_elapsed, 1),
-                "memory_mb": round(peak_memory_mb, 1),
+                "memory_mb": round(peak_memory_mb[0], 1),
+                "status": "Time Limit Exceeded"
+            }
+        finally:
+            stop_monitor.set()
+            monitor_thread.join(timeout=0.2)
+
+        t_elapsed = (time.perf_counter() - t_start) * 1000.0
+
+        if killed_mle[0]:
+            return {
+                "stdout": (stdout_data or "").strip(),
+                "stderr": f"Lỗi: Vượt quá giới hạn bộ nhớ (Memory Limit Exceeded - tiêu tốn {round(peak_memory_mb[0], 1)}MB / tối đa {int(mem_limit)}MB RAM). Tiến trình đã bị Sandbox dừng khẩn cấp.",
+                "exit_code": -1,
+                "runtime_ms": round(t_elapsed, 1),
+                "memory_mb": round(peak_memory_mb[0], 1),
                 "status": "Memory Limit Exceeded"
             }
 
-        stdout = stdout_data.strip()
-        stderr = stderr_data.strip()
+        stdout = (stdout_data or "").strip()
+        stderr = (stderr_data or "").strip()
 
         if "PermissionError: CodeArena Sandbox" in stderr:
             status_text = "Security Violation"
@@ -500,7 +508,7 @@ def execute_code_native_jail(code: str, language: str = "python", stdin: str = "
             "stderr": stderr,
             "exit_code": proc.returncode,
             "runtime_ms": round(t_elapsed, 1),
-            "memory_mb": round(peak_memory_mb, 1),
+            "memory_mb": round(peak_memory_mb[0], 1),
             "status": status_text
         }
 
@@ -669,21 +677,19 @@ def execute_compiled_binary(bin_path: str, stdin: str = "", timeout: Optional[fl
             errors="replace"
         )
 
-        if stdin:
-            try:
-                proc.stdin.write(stdin)
-                proc.stdin.flush()
-                proc.stdin.close()
-            except Exception:
-                pass
-
+        # Truyền dữ liệu đầu vào stdin trực tiếp qua communicate() - KHÔNG đóng thủ công trước khi gọi communicate()
+        input_data = stdin if stdin is not None else ""
         try:
-            stdout_data, stderr_data = proc.communicate(timeout=timeout)
+            stdout_data, stderr_data = proc.communicate(input=input_data, timeout=timeout)
         except subprocess.TimeoutExpired:
             proc.kill()
+            try:
+                stdout_data, stderr_data = proc.communicate(timeout=0.5)
+            except Exception:
+                stdout_data, stderr_data = "", ""
             t_elapsed = (time.perf_counter() - t_start) * 1000.0
             return {
-                "stdout": "",
+                "stdout": (stdout_data or "").strip(),
                 "stderr": f"Lỗi: Quá thời gian thực thi (Time Limit Exceeded - vượt quá {timeout}s).",
                 "exit_code": -1,
                 "runtime_ms": round(t_elapsed, 1),
@@ -1014,7 +1020,13 @@ def evaluate_submission(
     3. Thẩm định qua Google Gemini AI REST API (hoặc Native Semantic AI Evaluator chuyên sâu).
     """
     prob = PROBLEMS_DATA.get(problem_id)
-    
+    if not prob:
+        try:
+            from backend.database import get_problem_by_id_db
+            prob = get_problem_by_id_db(problem_id)
+        except Exception:
+            pass
+
     # 0. Chuẩn bị bộ test case chuẩn (hỗ trợ cả Test Hiện và Test Ẩn / Hidden Corner Cases)
     resolved_tests = []
     if problem_id in PROBLEM_HARNESS:
@@ -1028,27 +1040,30 @@ def evaluate_submission(
                 "hidden": bool(c_hid),
                 "input": c_expr
             })
-    elif prob and prob.get("testCases"):
-        for tc in prob["testCases"]:
-            inp = tc.get("input", "")
-            exp = tc.get("expected") or tc.get("output", "")
-            hid = bool(tc.get("hidden", False))
-            resolved_tests.append({
-                "call_expr": None,
-                "expected": str(exp),
-                "hidden": hid,
-                "input": str(inp)
-            })
-    elif prob and prob.get("sampleCases"):
-        for sc in prob["sampleCases"]:
-            inp = sc.get("input", "")
-            exp = sc.get("output") or sc.get("expected", "")
-            resolved_tests.append({
-                "call_expr": None,
-                "expected": str(exp),
-                "hidden": False,
-                "input": str(inp)
-            })
+    elif prob:
+        tc_source = prob.get("testCases") or prob.get("test_cases")
+        sc_source = prob.get("sampleCases") or prob.get("sample_cases")
+        if tc_source:
+            for tc in tc_source:
+                inp = tc.get("input") if tc.get("input") is not None else tc.get("in", "")
+                exp = tc.get("expected") or tc.get("output") or tc.get("expected_output") or tc.get("out") or ""
+                hid = bool(tc.get("hidden", False))
+                resolved_tests.append({
+                    "call_expr": None,
+                    "expected": str(exp),
+                    "hidden": hid,
+                    "input": str(inp)
+                })
+        elif sc_source:
+            for sc in sc_source:
+                inp = sc.get("input") if sc.get("input") is not None else sc.get("in", "")
+                exp = sc.get("output") or sc.get("expected") or sc.get("expected_output") or sc.get("out") or ""
+                resolved_tests.append({
+                    "call_expr": None,
+                    "expected": str(exp),
+                    "hidden": False,
+                    "input": str(inp)
+                })
 
     total_tests = len(resolved_tests) if resolved_tests else 3
 
@@ -1062,7 +1077,10 @@ def evaluate_submission(
     max_sim = min(100.0, round(max_sim, 1))
 
     # 2. Chạy kiểm tra sơ bộ cú pháp và ngoại lệ
-    exec_res = execute_code(code, language=language, stdin="", timeout=3.0)
+    current_timeout = get_current_timeout()
+    current_mem_limit = get_current_memory_limit()
+    first_stdin = str(resolved_tests[0]["input"]) if resolved_tests else ""
+    exec_res = execute_code(code, language=language, stdin=first_stdin, timeout=current_timeout)
 
     if exec_res["status"] == "Compile Error":
         return {
@@ -1087,8 +1105,8 @@ def evaluate_submission(
             "memory": f"{exec_res['memory_mb']} MB",
             "score": "0.0",
             "ai_score": "2.0",
-            "ai_rubric": f"[Không đạt - TLE] Quá thời gian thực thi tối đa {TIME_LIMIT_SECONDS} giây. Thuật toán có độ phức tạp quá lớn hoặc xảy ra vòng lặp vô tận.",
-            "ai_feedback": f"[Không đạt - TLE] Quá thời gian thực thi tối đa {TIME_LIMIT_SECONDS} giây. Thuật toán có độ phức tạp quá lớn hoặc xảy ra vòng lặp vô tận.",
+            "ai_rubric": f"[Không đạt - TLE] Quá thời gian thực thi tối đa {current_timeout} giây. Thuật toán có độ phức tạp quá lớn hoặc xảy ra vòng lặp vô tận.",
+            "ai_feedback": f"[Không đạt - TLE] Quá thời gian thực thi tối đa {current_timeout} giây. Thuật toán có độ phức tạp quá lớn hoặc xảy ra vòng lặp vô tận.",
             "similarity_rate": max_sim,
             "stdout": "",
             "stderr": exec_res["stderr"]
@@ -1102,8 +1120,8 @@ def evaluate_submission(
             "memory": f"{exec_res['memory_mb']} MB",
             "score": "0.0",
             "ai_score": "1.0",
-            "ai_rubric": f"[Không đạt - MLE] Vượt quá giới hạn bộ nhớ {int(MEMORY_LIMIT_MB)}MB RAM cho phép của Sandbox. Vui lòng tối ưu bộ nhớ.",
-            "ai_feedback": f"[Không đạt - MLE] Vượt quá giới hạn bộ nhớ {int(MEMORY_LIMIT_MB)}MB RAM cho phép của Sandbox. Vui lòng tối ưu bộ nhớ.",
+            "ai_rubric": f"[Không đạt - MLE] Vượt quá giới hạn bộ nhớ {int(current_mem_limit)}MB RAM cho phép của Sandbox. Vui lòng tối ưu bộ nhớ.",
+            "ai_feedback": f"[Không đạt - MLE] Vượt quá giới hạn bộ nhớ {int(current_mem_limit)}MB RAM cho phép của Sandbox. Vui lòng tối ưu bộ nhớ.",
             "similarity_rate": max_sim,
             "stdout": "",
             "stderr": exec_res["stderr"]
@@ -1127,6 +1145,7 @@ def evaluate_submission(
     # 3. Phân tích hàm thí sinh và xây dựng Test Harness thực thi
     passed_count = 0
     test_errors = []
+    test_failures = []
 
     target_funcs = {
         "CA-101": "twoSum",
@@ -1138,19 +1157,92 @@ def evaluate_submission(
 
     # Phát hiện hàm trong code thí sinh
     detected_funcs = []
+    has_top_level_input = bool(re.search(r'\b(input|sys\.stdin)\b', code))
     try:
         tree = ast.parse(code)
         detected_funcs = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
     except Exception:
         pass
 
-    # Tạo helper runner thông minh cho python (tự động nhận diện hàm chính và hàm phụ)
-    alias_code = ""
-    if detected_funcs:
-        if target_fn not in detected_funcs:
-            alias_code = f"\n# Dynamic Function Alias\n{target_fn} = {detected_funcs[0]}\n"
-        candidate_list = ", ".join(reversed(detected_funcs))
-        alias_code += f"""
+    # Xác định chiến lược chấm: Standard I/O (stdin/stdout) hay Function Harness Runner
+    is_cpp = language.lower() in ["cpp", "c++", "c"]
+    is_standard_io = is_cpp or has_top_level_input or (not detected_funcs and problem_id not in PROBLEM_HARNESS)
+
+    if resolved_tests and is_standard_io:
+        # CHIẾN LƯỢC 1: STANDARD I/O CHUẨN (Thực thi từng test case với dữ liệu đầu vào stdin)
+        for idx, t in enumerate(resolved_tests):
+            tc_input = str(t.get("input", ""))
+            if not tc_input.endswith("\n"):
+                tc_input += "\n"
+            tc_exp = str(t.get("expected", "")).strip()
+
+            tc_res = execute_code(code, language=language, stdin=tc_input, timeout=current_timeout)
+            if tc_res.get("runtime_ms", 0) > exec_res.get("runtime_ms", 0):
+                exec_res["runtime_ms"] = tc_res["runtime_ms"]
+            if tc_res.get("memory_mb", 0) > exec_res.get("memory_mb", 0):
+                exec_res["memory_mb"] = tc_res["memory_mb"]
+
+            if tc_res["status"] == "Time Limit Exceeded":
+                return {
+                    "status": "Time Limit Exceeded",
+                    "test_passed": f"{passed_count}/{total_tests}",
+                    "runtime": f"{tc_res['runtime_ms']} ms",
+                    "memory": f"{tc_res['memory_mb']} MB",
+                    "score": "0.0",
+                    "ai_score": "2.0",
+                    "ai_rubric": f"[Không đạt - TLE] Bộ test case vượt quá thời gian thực thi tối đa {current_timeout} giây.",
+                    "ai_feedback": f"[Không đạt - TLE] Bộ test case vượt quá thời gian thực thi tối đa {current_timeout} giây.",
+                    "similarity_rate": max_sim,
+                    "stdout": "",
+                    "stderr": tc_res["stderr"]
+                }
+            if tc_res["status"] == "Memory Limit Exceeded":
+                return {
+                    "status": "Memory Limit Exceeded",
+                    "test_passed": f"{passed_count}/{total_tests}",
+                    "runtime": f"{tc_res['runtime_ms']} ms",
+                    "memory": f"{tc_res['memory_mb']} MB",
+                    "score": "0.0",
+                    "ai_score": "1.0",
+                    "ai_rubric": f"[Không đạt - MLE] Bộ test case tiêu tốn vượt quá giới hạn bộ nhớ {int(current_mem_limit)}MB RAM cho phép.",
+                    "ai_feedback": f"[Không đạt - MLE] Bộ test case tiêu tốn vượt quá giới hạn bộ nhớ {int(current_mem_limit)}MB RAM cho phép.",
+                    "similarity_rate": max_sim,
+                    "stdout": "",
+                    "stderr": tc_res["stderr"]
+                }
+            if tc_res["status"] == "Compile Error":
+                return {
+                    "status": "Compile Error",
+                    "test_passed": f"0/{total_tests}",
+                    "runtime": "0.0 ms",
+                    "memory": "0.0 MB",
+                    "score": "0.0",
+                    "ai_score": "0.0",
+                    "ai_rubric": f"[Không đạt - Lỗi biên dịch (Compile Error)] {tc_res['stderr'][:180]}",
+                    "ai_feedback": f"[Lỗi biên dịch - Compile Error] {tc_res['stderr']}",
+                    "similarity_rate": max_sim,
+                    "stdout": "",
+                    "stderr": tc_res["stderr"]
+                }
+
+            actual_out = tc_res["stdout"].strip()
+            # So sánh output linh hoạt: chính xác hoặc chuẩn hóa khoảng trắng
+            if actual_out == tc_exp or "".join(actual_out.split()) == "".join(tc_exp.split()):
+                passed_count += 1
+            else:
+                if tc_res.get("exit_code") != 0 or tc_res.get("status") == "Runtime Error":
+                    test_errors.append(tc_res.get("stderr") or f"Test {idx+1}: Runtime Error")
+                else:
+                    test_failures.append(f"Test {idx+1}: Kết quả '{actual_out}' khác kỳ vọng '{tc_exp}'")
+
+    elif resolved_tests and language.lower() in ["python", "python 3", "py"]:
+        # CHIẾN LƯỢC 2: FUNCTION HARNESS RUNNER (Dành cho bài hàm số như CA-101 đến CA-104)
+        alias_code = ""
+        if detected_funcs:
+            if target_fn not in detected_funcs:
+                alias_code = f"\n# Dynamic Function Alias\n{target_fn} = {detected_funcs[0]}\n"
+            candidate_list = ", ".join(reversed(detected_funcs))
+            alias_code += f"""
 def _codearena_call(*args):
     candidate_funcs = [{candidate_list}]
     for fn in candidate_funcs:
@@ -1162,8 +1254,6 @@ def _codearena_call(*args):
         return candidate_funcs[0](*args)
     raise RuntimeError("Không tìm thấy hàm phù hợp")
 """
-
-    if resolved_tests and language.lower() in ["python", "python 3", "py"]:
         harness_code = code + alias_code + "\n\n# CodeArena Automated Judge Test Runner\n"
         harness_code += "import sys\n"
         harness_code += "passed_cnt = 0\n"
@@ -1193,7 +1283,7 @@ except Exception as e:
 """
         harness_code += "print(f'CODEARENA_PASSED: {passed_cnt}')\n"
 
-        harness_res = execute_code(harness_code, language="python", timeout=3.5)
+        harness_res = execute_code(harness_code, language="python", timeout=current_timeout + 0.5)
         exec_res["runtime_ms"] = harness_res["runtime_ms"]
         exec_res["memory_mb"] = harness_res["memory_mb"]
 
@@ -1205,8 +1295,8 @@ except Exception as e:
                 "memory": f"{harness_res['memory_mb']} MB",
                 "score": "0.0",
                 "ai_score": "2.0",
-                "ai_rubric": f"[Không đạt - TLE] Bộ test case vượt quá thời gian thực thi tối đa {TIME_LIMIT_SECONDS} giây.",
-                "ai_feedback": f"[Không đạt - TLE] Bộ test case vượt quá thời gian thực thi tối đa {TIME_LIMIT_SECONDS} giây.",
+                "ai_rubric": f"[Không đạt - TLE] Bộ test case vượt quá thời gian thực thi tối đa {current_timeout} giây.",
+                "ai_feedback": f"[Không đạt - TLE] Bộ test case vượt quá thời gian thực thi tối đa {current_timeout} giây.",
                 "similarity_rate": max_sim,
                 "stdout": "",
                 "stderr": harness_res["stderr"]
@@ -1219,8 +1309,8 @@ except Exception as e:
                 "memory": f"{harness_res['memory_mb']} MB",
                 "score": "0.0",
                 "ai_score": "1.0",
-                "ai_rubric": f"[Không đạt - MLE] Bộ test case tiêu tốn vượt quá giới hạn bộ nhớ {int(MEMORY_LIMIT_MB)}MB RAM cho phép.",
-                "ai_feedback": f"[Không đạt - MLE] Bộ test case tiêu tốn vượt quá giới hạn bộ nhớ {int(MEMORY_LIMIT_MB)}MB RAM cho phép.",
+                "ai_rubric": f"[Không đạt - MLE] Bộ test case tiêu tốn vượt quá giới hạn bộ nhớ {int(current_mem_limit)}MB RAM cho phép.",
+                "ai_feedback": f"[Không đạt - MLE] Bộ test case tiêu tốn vượt quá giới hạn bộ nhớ {int(current_mem_limit)}MB RAM cho phép.",
                 "similarity_rate": max_sim,
                 "stdout": "",
                 "stderr": harness_res["stderr"]
