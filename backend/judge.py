@@ -950,7 +950,7 @@ def call_gemini_judge(
         return None
 
     model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip()
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
     prompt = f"""Bạn là giảng viên chấm thi lập trình giải thuật chuyên nghiệp.
 Hãy đánh giá bài nộp của thí sinh với phong cách học thuật chuẩn mực, không dùng emoji lung tung.
@@ -995,7 +995,10 @@ Hãy phân tích và trả về ĐÚNG ĐỊNH DẠNG JSON sau:
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key
+        },
         method="POST"
     )
 
