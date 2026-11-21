@@ -119,7 +119,8 @@ class ContestCreate(BaseModel):
     title: str = Field(..., min_length=3, max_length=150)
     desc: Optional[str] = ""
     creator: Optional[str] = "TS. Nguyễn Thị Hoa Huệ"
-    duration_minutes: int = Field(default=120, ge=10, le=1440)
+    duration_minutes: int = Field(default=120, ge=1, le=525600)  # Tối đa 1 năm (365 ngày) cho kỳ thi dài hạn
+    start_time: Optional[str] = None
     rule: Optional[str] = "Luật ICPC (Penalty 20 phút/lần nộp sai)"
     grader_mode: Optional[str] = "hybrid"
     problems: List[str] = Field(default_factory=lambda: ["CA-101", "CA-102", "CA-103", "CA-104"])

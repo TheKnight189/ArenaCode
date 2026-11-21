@@ -5,6 +5,7 @@ Hỗ trợ kiểm thử cô lập, AST similarity (Winnowing), phân tích độ
 """
 
 import ast
+import difflib
 import json
 import os
 import re
@@ -43,6 +44,14 @@ PROBLEM_HARNESS = {
         ("knapsack(10, [5, 4, 6, 3], [10, 40, 30, 50])", "90", True),
         ("knapsack(0, [1, 2, 3], [10, 20, 30])", "0", True)
     ]
+}
+
+# Danh sách tên hàm mục tiêu chuẩn theo từng bài toán
+TARGET_FUNCS = {
+    "CA-101": "twoSum",
+    "CA-102": "lengthOfLIS",
+    "CA-103": "dijkstra",
+    "CA-104": "knapsack"
 }
 
 def compute_similarity(code1: str, code2: str) -> float:
@@ -960,12 +969,15 @@ Mã nguồn thí sinh:
 {code}
 ```
 
+Ngoài ra, hãy kiểm tra xem mã nguồn có thực sự giải đúng bài toán được yêu cầu hay không. Nếu mã nguồn không liên quan hoặc giải sai đề bài, hãy ghi rõ trong ai_rubric.
+
 Hãy phân tích và trả về ĐÚNG ĐỊNH DẠNG JSON sau:
 {{
   "ai_score": 9.5,
   "time_complexity": "O(N)",
   "space_complexity": "O(1)",
   "clean_code_rating": "Tốt",
+  "is_off_topic": false,
   "ai_rubric": "Nhận xét phân tích thuật toán chuyên sâu (2-3 câu ngắn gọn, giải thích ưu điểm, độ phức tạp và góp ý nếu cần)."
 }}
 """
@@ -1006,6 +1018,223 @@ Hãy phân tích và trả về ĐÚNG ĐỊNH DẠNG JSON sau:
         return None
 
     return None
+
+def detect_off_topic(
+    code: str,
+    problem_id: str,
+    problem_name: str,
+    problem_desc: str,
+    detected_funcs: list,
+    target_fn: str
+) -> dict:
+    """
+    Phát hiện bài nộp lệch đề / giải sai bài toán (Off-topic detection):
+    1. Phát hiện mã in kết quả cứng (hardcoded output) không có giải thuật.
+    2. Phát hiện mã nguồn quá ngắn hoặc rỗng (< 3 dòng có ý nghĩa).
+    3. Kiểm tra sự tương thích tên hàm với hàm mục tiêu (target function).
+    4. Phân tích cấu trúc dữ liệu và từ khóa giải thuật đặc trưng của bài toán.
+    """
+    code_str = code or ""
+    meaningful_lines = [
+        line.strip()
+        for line in code_str.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+
+    tree = None
+    try:
+        tree = ast.parse(code_str)
+    except Exception:
+        pass
+
+    # Tự động trích xuất detected_funcs nếu caller truyền rỗng hoặc None
+    if not detected_funcs and tree:
+        detected_funcs = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+    elif detected_funcs is None:
+        detected_funcs = []
+
+    # 1. Phát hiện in kết quả cứng (Hardcoded output)
+    if tree:
+        has_computation = any(
+            isinstance(node, (ast.For, ast.While, ast.FunctionDef, ast.AsyncFunctionDef, ast.If,
+                              ast.ListComp, ast.DictComp, ast.SetComp, ast.GeneratorExp,
+                              ast.Try, ast.With))
+            for node in ast.walk(tree)
+        )
+        if not has_computation:
+            print_calls = []
+            other_calls = []
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call):
+                    if isinstance(node.func, ast.Name) and node.func.id == "print":
+                        print_calls.append(node)
+                    else:
+                        other_calls.append(node)
+            if print_calls and not other_calls:
+                is_pure_prints = True
+                for stmt in tree.body:
+                    if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
+                        if not (isinstance(stmt.value.func, ast.Name) and stmt.value.func.id == "print"):
+                            is_pure_prints = False
+                            break
+                    elif isinstance(stmt, ast.Assign):
+                        if not isinstance(stmt.value, (ast.Constant, ast.List, ast.Tuple, ast.Dict, ast.Set)):
+                            is_pure_prints = False
+                            break
+                    else:
+                        is_pure_prints = False
+                        break
+                if is_pure_prints:
+                    return {
+                        "is_off_topic": True,
+                        "confidence": 0.95,
+                        "reason": "Phát hiện mã nguồn chỉ in kết quả cứng (hardcoded output) mà không có giải thuật xử lý."
+                    }
+    else:
+        stripped = [l for l in meaningful_lines if not l.startswith("//")]
+        if stripped and all(re.match(r'^(print\(|cout\s*<<|System\.out\.print|printf\()', l) for l in stripped):
+            return {
+                "is_off_topic": True,
+                "confidence": 0.95,
+                "reason": "Phát hiện mã nguồn chỉ in kết quả cứng (hardcoded output) mà không có giải thuật xử lý."
+            }
+
+    # 2. Mã nguồn quá ngắn hoặc rỗng (< 3 dòng có ý nghĩa)
+    if len(meaningful_lines) < 3:
+        return {
+            "is_off_topic": True,
+            "confidence": 0.95,
+            "reason": "Mã nguồn quá ngắn hoặc không chứa giải thuật."
+        }
+
+    # 3. Phân tích tương thích tên hàm (Function name matching)
+    target_fn_clean = (target_fn or "").strip()
+    if not target_fn_clean or target_fn_clean == "solve":
+        target_fn_clean = TARGET_FUNCS.get(problem_id, target_fn_clean or "solve")
+    is_target_known = bool(target_fn_clean and target_fn_clean != "solve")
+
+    fn_matched = False
+    if detected_funcs and is_target_known:
+        t_clean = re.sub(r'[^a-zA-Z0-9]', '', target_fn_clean).lower()
+        for fn in detected_funcs:
+            c_clean = re.sub(r'[^a-zA-Z0-9]', '', fn).lower()
+            if not c_clean:
+                continue
+            if t_clean == c_clean or t_clean in c_clean or c_clean in t_clean:
+                fn_matched = True
+                break
+            if difflib.SequenceMatcher(None, t_clean, c_clean).ratio() >= 0.65:
+                fn_matched = True
+                break
+
+    # 4. Phân tích từ khóa giải thuật đặc trưng (Algorithm and data structure patterns)
+    prob_combined = f"{problem_id} {problem_name} {problem_desc}".lower()
+    code_lower = code_str.lower()
+
+    is_two_sum = ("ca-101" in prob_combined or "two sum" in prob_combined or
+                  target_fn_clean.lower() == "twosum" or
+                  ("tổng" in prob_combined and ("hai số" in prob_combined or "cặp số" in prob_combined)))
+    is_lis = ("ca-102" in prob_combined or "lis" in prob_combined or
+              "dãy con tăng" in prob_combined or "longest increasing" in prob_combined or
+              target_fn_clean.lower() == "lengthoflis")
+    is_dijkstra = ("ca-103" in prob_combined or "dijkstra" in prob_combined or
+                   "đường đi ngắn nhất" in prob_combined or "shortest path" in prob_combined or
+                   target_fn_clean.lower() == "dijkstra")
+    is_knapsack = ("ca-104" in prob_combined or "knapsack" in prob_combined or
+                   "ba lô" in prob_combined or "cái túi" in prob_combined or "balo" in prob_combined or
+                   target_fn_clean.lower() == "knapsack")
+
+    has_algo_patterns = False
+    some_keywords_found = False
+
+    if is_two_sum:
+        has_dict = (tree and any(isinstance(n, (ast.Dict, ast.DictComp)) for n in ast.walk(tree))) or "dict" in code_lower or "{" in code_str
+        has_enumerate = "enumerate" in code_lower
+        has_domain_terms = any(k in code_lower for k in ["target", "sum", "tổng", "diff", "complement", "num", "nums"])
+        has_two_pointers = ("left" in code_lower and "right" in code_lower) or ("i" in code_lower and "j" in code_lower and ("nums[i]" in code_lower or "arr[i]" in code_lower))
+
+        if (has_dict and (has_enumerate or has_domain_terms)) or (has_domain_terms and has_two_pointers):
+            has_algo_patterns = True
+            some_keywords_found = True
+        elif has_dict or has_enumerate or has_domain_terms:
+            some_keywords_found = True
+
+    elif is_lis:
+        has_dp = "dp" in code_lower or "memo" in code_lower
+        has_bisect = "bisect" in code_lower or "bisect_left" in code_lower or "bisect_right" in code_lower
+        has_domain_terms = any(k in code_lower for k in ["subsequence", "increasing", "dãy con", "lis", "tails"])
+
+        if (has_dp and ("max(" in code_str or "[" in code_str)) or has_bisect or (has_dp and has_domain_terms):
+            has_algo_patterns = True
+            some_keywords_found = True
+        elif has_dp or has_bisect or has_domain_terms:
+            some_keywords_found = True
+
+    elif is_dijkstra:
+        has_heap = any(k in code_lower for k in ["heap", "heapq", "heappush", "heappop", "priority", "pq"])
+        has_graph = any(k in code_lower for k in ["graph", "dist", "distance", "adj", "visited", "weight", "cost", "ngắn nhất"])
+
+        if has_heap and has_graph:
+            has_algo_patterns = True
+            some_keywords_found = True
+        elif has_heap or has_graph:
+            some_keywords_found = True
+
+    elif is_knapsack:
+        has_dp = "dp" in code_lower or "memo" in code_lower or "table" in code_lower
+        has_bag_terms = any(k in code_lower for k in ["weight", "weights", "val", "values", "value", "capacity", "cap", "bag", "túi", "ba lô", "w,"])
+
+        if has_dp and has_bag_terms:
+            has_algo_patterns = True
+            some_keywords_found = True
+        elif has_dp or has_bag_terms:
+            some_keywords_found = True
+
+    else:
+        name_words = [w.lower() for w in re.findall(r'\b[a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF]{3,}\b', problem_name)]
+        matched_words = [w for w in name_words if w in code_lower]
+        if len(matched_words) >= 2 or (name_words and len(matched_words) == len(name_words)):
+            has_algo_patterns = True
+            some_keywords_found = True
+        elif len(matched_words) >= 1:
+            some_keywords_found = True
+
+    # 5. Tổng hợp tín hiệu và đánh giá độ tin cậy
+    if fn_matched:
+        return {
+            "is_off_topic": False,
+            "confidence": 0.1 if has_algo_patterns else 0.2,
+            "reason": "Mã nguồn định nghĩa hàm khớp với yêu cầu bài toán."
+        }
+
+    if detected_funcs and is_target_known:
+        first_fn = detected_funcs[0]
+        if not some_keywords_found and not has_algo_patterns:
+            return {
+                "is_off_topic": True,
+                "confidence": 0.85,
+                "reason": f"Tên hàm '{first_fn}' không khớp với yêu cầu ('{target_fn_clean}') và không tìm thấy giải thuật liên quan đến bài toán."
+            }
+        elif some_keywords_found or has_algo_patterns:
+            return {
+                "is_off_topic": True,
+                "confidence": 0.55,
+                "reason": f"Tên hàm '{first_fn}' không khớp với yêu cầu ('{target_fn_clean}'), dù có một số từ khóa liên quan."
+            }
+
+    if not has_algo_patterns and not some_keywords_found:
+        if is_two_sum or is_lis or is_dijkstra or is_knapsack:
+            return {
+                "is_off_topic": True,
+                "confidence": 0.75,
+                "reason": f"Mã nguồn không chứa từ khóa hay giải thuật phù hợp với bài toán '{problem_name or problem_id}'."
+            }
+
+    return {
+        "is_off_topic": False,
+        "confidence": 0.2,
+        "reason": "Mã nguồn có giải thuật phù hợp với bài toán."
+    }
 
 def evaluate_submission(
     problem_id: str,
@@ -1075,6 +1304,35 @@ def evaluate_submission(
             if sim > max_sim:
                 max_sim = sim
     max_sim = min(100.0, round(max_sim, 1))
+
+    # Phát hiện hàm sớm bằng AST và chạy phát hiện lệch đề (Off-topic detection)
+    detected_funcs = []
+    try:
+        tree = ast.parse(code)
+        detected_funcs = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+    except Exception:
+        pass
+
+    target_funcs = {
+        "CA-101": "twoSum",
+        "CA-102": "lengthOfLIS",
+        "CA-103": "dijkstra",
+        "CA-104": "knapsack"
+    }
+    target_fn = target_funcs.get(problem_id, "solve")
+
+    prob_name = prob.get("name", "") if prob else ""
+    prob_desc_text = prob.get("desc", "") if prob else ""
+    clean_desc = re.sub(r'<[^>]+>', '', prob_desc_text)
+
+    off_topic_result = detect_off_topic(
+        code=code,
+        problem_id=problem_id,
+        problem_name=prob_name,
+        problem_desc=clean_desc,
+        detected_funcs=detected_funcs,
+        target_fn=target_fn
+    )
 
     # 2. Chạy kiểm tra sơ bộ cú pháp và ngoại lệ
     current_timeout = get_current_timeout()
@@ -1147,22 +1405,13 @@ def evaluate_submission(
     test_errors = []
     test_failures = []
 
-    target_funcs = {
-        "CA-101": "twoSum",
-        "CA-102": "lengthOfLIS",
-        "CA-103": "dijkstra",
-        "CA-104": "knapsack"
-    }
-    target_fn = target_funcs.get(problem_id, "solve")
-
-    # Phát hiện hàm trong code thí sinh
-    detected_funcs = []
     has_top_level_input = bool(re.search(r'\b(input|sys\.stdin)\b', code))
-    try:
-        tree = ast.parse(code)
-        detected_funcs = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
-    except Exception:
-        pass
+    if not detected_funcs:
+        try:
+            tree = ast.parse(code)
+            detected_funcs = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        except Exception:
+            pass
 
     # Xác định chiến lược chấm: Standard I/O (stdin/stdout) hay Function Harness Runner
     is_cpp = language.lower() in ["cpp", "c++", "c"]
@@ -1435,6 +1684,10 @@ except Exception as e:
         gemini_rubric = gemini_result.get("ai_rubric", "")
         time_comp = gemini_result.get("time_complexity", semantic_ai["time_complexity"])
         ai_rubric = f"[Google Gemini AI - Độ phức tạp: {time_comp}] {gemini_rubric}"
+        if gemini_result.get("is_off_topic") is True:
+            gemini_off_msg = "[Cảnh báo lệch đề] AI phát hiện bài nộp có thể không đúng yêu cầu đề bài."
+            if gemini_off_msg not in ai_rubric:
+                ai_rubric = f"{ai_rubric} {gemini_off_msg}"
 
     # 7. Xử lý nếu vi phạm đạo văn
     if max_sim >= 75.0:
@@ -1462,14 +1715,24 @@ except Exception as e:
         elif visible_passed == visible_total and hidden_passed < hidden_total:
             ai_rubric = f"{ai_rubric} [Lưu ý test ẩn]: Vượt qua trọn vẹn {visible_total}/{visible_total} test công khai, nhưng chưa đạt {hidden_total - hidden_passed}/{hidden_total} test case ẩn (Corner Cases / Biên đặc biệt)."
 
+    # 9. Đính kèm cảnh báo lệch đề nếu phát hiện
+    if off_topic_result.get("is_off_topic") and off_topic_result.get("confidence", 0) >= 0.7:
+        off_topic_warning = f"[Cảnh báo lệch đề] AI phát hiện bài nộp có thể không đúng yêu cầu đề bài ({off_topic_result['reason']}). Độ tin cậy: {off_topic_result['confidence']*100:.0f}%."
+        if "[Cảnh báo lệch đề]" in ai_rubric:
+            if off_topic_warning not in ai_rubric:
+                ai_rubric = f"{ai_rubric} {off_topic_warning}"
+        else:
+            ai_rubric = f"{ai_rubric} {off_topic_warning}" if ai_rubric else off_topic_warning
+
     test_details = []
     for idx, t in enumerate(resolved_tests):
+        is_hidden = bool(t.get("hidden"))
         test_details.append({
             "id": idx + 1,
-            "hidden": bool(t.get("hidden")),
+            "hidden": is_hidden,
             "passed": (idx in passed_indices),
-            "input": t.get("input", ""),
-            "expected": t.get("expected", "")
+            "input": "[Dữ liệu ẩn trong kỳ thi]" if is_hidden else t.get("input", ""),
+            "expected": "[Kết quả ẩn trong kỳ thi]" if is_hidden else t.get("expected", "")
         })
 
     return {

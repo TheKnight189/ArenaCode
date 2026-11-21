@@ -912,7 +912,14 @@ def get_stats() -> Dict[str, int]:
 # ========================================================
 # SUBMISSION CRUD FUNCTIONS
 # ========================================================
-def list_submissions(student_id: str = None, problem_id: str = None, status: str = None, q: str = None) -> List[Dict[str, Any]]:
+def list_submissions(
+    student_id: Optional[str] = None,
+    problem_id: Optional[str] = None,
+    status: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = 0
+) -> List[Dict[str, Any]]:
     conn = get_db()
     cursor = conn.cursor()
     query = "SELECT * FROM submissions WHERE 1=1"
@@ -944,6 +951,12 @@ def list_submissions(student_id: str = None, problem_id: str = None, status: str
         params.extend([search, search, search])
 
     query += " ORDER BY created_at DESC"
+    if limit is not None:
+        safe_limit = max(0, int(limit))
+        safe_offset = max(0, int(offset)) if offset is not None else 0
+        query += " LIMIT %s OFFSET %s"
+        params.extend([safe_limit, safe_offset])
+
     cursor.execute(query, params)
     rows = cursor.fetchall()
     conn.close()
@@ -1112,7 +1125,7 @@ def create_contest(contest_data: dict) -> Optional[Dict[str, Any]]:
         contest_data["title"],
         contest_data.get("desc", ""),
         contest_data.get("creator", "TS. Nguyễn Thị Hoa Huệ"),
-        now,
+        contest_data.get("start_time") or now,
         contest_data.get("duration_minutes", 120),
         "Đang diễn ra",
         contest_data.get("rule", "Luật ICPC (Penalty 20 phút/lần nộp sai)"),

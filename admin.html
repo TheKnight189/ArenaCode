@@ -896,13 +896,63 @@
           </div>
           <!-- TEACHER_CONTEST_ACTION_END -->
 
-          <!-- Live Countdown Clock -->
-          <div class="bg-slate-950 border border-indigo-500/30 rounded-none p-4 text-center min-w-[160px]">
-            <span class="text-[12px] uppercase tracking-wider text-slate-400 font-bold block mb-1 whitespace-nowrap">Thời gian còn lại</span>
-            <div id="contest-timer" class="mono text-2xl font-black text-indigo-400 tracking-wider whitespace-nowrap">
-              01:42:15
+          <!-- Live Countdown Clock with Days, Hours, Minutes, Seconds -->
+          <div class="bg-slate-950 border border-indigo-500/30 rounded-none p-3 text-center min-w-[270px] sm:min-w-[310px] shadow-lg relative group">
+            <div class="flex items-center justify-between gap-2 mb-1.5 pb-1 border-b border-slate-800/80">
+              <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1.5 whitespace-nowrap">
+                <span id="timer-live-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Thời gian còn lại</span>
+              </span>
+              <button type="button" onclick="openTimerConfigModal()" title="Tùy chỉnh thời gian đếm ngược (Ngày, Giờ, Phút, Giây)" class="px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-none transition flex items-center gap-1 cursor-pointer">
+                <svg class="w-3 h-3 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Đặt giờ</span>
+              </button>
             </div>
-            <span id="contest-timer-subtext" class="text-[12px] text-emerald-400 block mt-1 whitespace-nowrap">Đang tính điểm Live</span>
+
+            <!-- 4 Segmented Display Cards: Ngày : Giờ : Phút : Giây -->
+            <div class="flex items-center justify-center gap-1 sm:gap-1.5 py-1">
+              <!-- DAYS -->
+              <div class="flex flex-col items-center">
+                <div id="timer-days" class="w-11 sm:w-13 h-9 sm:h-10 bg-slate-900 border border-indigo-500/40 text-indigo-300 font-mono text-lg sm:text-xl font-black flex items-center justify-center shadow-inner">
+                  00
+                </div>
+                <span class="text-[9px] uppercase font-bold text-slate-400 mt-0.5 tracking-wider">NGÀY</span>
+              </div>
+              <span class="text-indigo-400 font-bold text-sm sm:text-base -mt-3.5">:</span>
+              <!-- HOURS -->
+              <div class="flex flex-col items-center">
+                <div id="timer-hours" class="w-11 sm:w-13 h-9 sm:h-10 bg-slate-900 border border-indigo-500/40 text-indigo-300 font-mono text-lg sm:text-xl font-black flex items-center justify-center shadow-inner">
+                  01
+                </div>
+                <span class="text-[9px] uppercase font-bold text-slate-400 mt-0.5 tracking-wider">GIỜ</span>
+              </div>
+              <span class="text-indigo-400 font-bold text-sm sm:text-base -mt-3.5">:</span>
+              <!-- MINUTES -->
+              <div class="flex flex-col items-center">
+                <div id="timer-minutes" class="w-11 sm:w-13 h-9 sm:h-10 bg-slate-900 border border-indigo-500/40 text-indigo-300 font-mono text-lg sm:text-xl font-black flex items-center justify-center shadow-inner">
+                  42
+                </div>
+                <span class="text-[9px] uppercase font-bold text-slate-400 mt-0.5 tracking-wider">PHÚT</span>
+              </div>
+              <span class="text-indigo-400 font-bold text-sm sm:text-base -mt-3.5">:</span>
+              <!-- SECONDS -->
+              <div class="flex flex-col items-center">
+                <div id="timer-seconds" class="w-11 sm:w-13 h-9 sm:h-10 bg-slate-900 border border-indigo-500/40 text-amber-400 font-mono text-lg sm:text-xl font-black flex items-center justify-center shadow-inner">
+                  15
+                </div>
+                <span class="text-[9px] uppercase font-bold text-amber-400 mt-0.5 tracking-wider">GIÂY</span>
+              </div>
+            </div>
+
+            <!-- Legacy text element preserved for full backward compatibility -->
+            <span id="contest-timer" class="hidden">00d 01:42:15</span>
+
+            <div class="flex items-center justify-between gap-1 mt-1 text-[11px] border-t border-slate-900 pt-1">
+              <span id="contest-timer-subtext" class="text-emerald-400 font-medium whitespace-nowrap">Đang tính điểm Live</span>
+              <button type="button" id="btn-quick-pause-timer" onclick="togglePauseCountdown()" class="text-[10px] text-slate-400 hover:text-slate-200 transition underline underline-offset-2">
+                Tạm dừng
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1776,6 +1826,124 @@
   </div>
 
   <!-- ========================================================= -->
+  <!-- MODAL 1C: CẤU HÌNH ĐỒNG HỒ ĐẾM NGƯỢC (NGÀY - GIỜ - PHÚT - GIÂY) -->
+  <!-- ========================================================= -->
+  <div id="timer-config-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-indigo-500/40 rounded-none max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-none bg-indigo-600/20 text-indigo-400 flex items-center justify-center font-bold text-base shrink-0 border border-indigo-500/30">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span>Cài đặt Đồng hồ Đếm ngược</span>
+              <span class="px-2 py-0.5 rounded-none text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Live ICPC</span>
+            </h3>
+            <p id="timer-modal-contest-title" class="text-xs text-slate-400 truncate max-w-[340px]">HaUI IT Code Challenge 2026</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeTimerConfigModal()" class="text-slate-400 hover:text-white p-1 rounded-none hover:bg-slate-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
+        <!-- Input Mode Selection -->
+        <div class="flex items-center gap-4 bg-slate-950/70 p-2.5 border border-slate-800">
+          <label class="flex items-center gap-2 text-white font-medium cursor-pointer">
+            <input type="radio" name="timer-input-mode" value="duration" checked onchange="switchTimerConfigMode('duration')" class="text-indigo-500 focus:ring-0">
+            <span>Chọn theo Ngày / Giờ / Phút / Giây</span>
+          </label>
+          <label class="flex items-center gap-2 text-slate-300 font-medium cursor-pointer">
+            <input type="radio" name="timer-input-mode" value="target" onchange="switchTimerConfigMode('target')" class="text-indigo-500 focus:ring-0">
+            <span>Chọn theo Mốc Lịch & Giờ kết thúc</span>
+          </label>
+        </div>
+
+        <!-- Mode 1: Duration Inputs (Days, Hours, Minutes, Seconds) -->
+        <div id="timer-mode-duration" class="space-y-3 bg-slate-950/50 p-4 border border-slate-800">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-indigo-300 uppercase tracking-wider text-[11px]">Nhập thời lượng đếm ngược:</h4>
+            <span class="text-[11px] text-slate-400">Đếm lùi từ thời điểm bấm Áp dụng</span>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2 text-center">
+            <!-- Days -->
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1 font-bold">Ngày (Days)</label>
+              <input type="number" id="cfg-timer-days" min="0" max="365" value="0" class="w-full bg-slate-900 border border-slate-700 rounded-none p-2 text-center text-sm font-mono font-bold text-white outline-none focus:border-indigo-500">
+            </div>
+            <!-- Hours -->
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1 font-bold">Giờ (Hours)</label>
+              <input type="number" id="cfg-timer-hours" min="0" max="23" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-none p-2 text-center text-sm font-mono font-bold text-white outline-none focus:border-indigo-500">
+            </div>
+            <!-- Minutes -->
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1 font-bold">Phút (Mins)</label>
+              <input type="number" id="cfg-timer-minutes" min="0" max="59" value="42" class="w-full bg-slate-900 border border-slate-700 rounded-none p-2 text-center text-sm font-mono font-bold text-white outline-none focus:border-indigo-500">
+            </div>
+            <!-- Seconds -->
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1 font-bold text-amber-400">Giây (Secs)</label>
+              <input type="number" id="cfg-timer-seconds" min="0" max="59" value="15" class="w-full bg-slate-900 border border-slate-700 rounded-none p-2 text-center text-sm font-mono font-bold text-amber-400 outline-none focus:border-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 2: Datetime Target Input -->
+        <div id="timer-mode-target" class="hidden space-y-3 bg-slate-950/50 p-4 border border-slate-800">
+          <h4 class="font-bold text-indigo-300 uppercase tracking-wider text-[11px]">Chọn thời điểm kết thúc kỳ thi:</h4>
+          <div>
+            <label class="block text-slate-400 mb-1">Mốc ngày & giờ kết thúc (End Date Time):</label>
+            <input type="datetime-local" id="cfg-timer-datetime" class="w-full bg-slate-900 border border-slate-700 rounded-none px-3 py-2 text-xs font-mono text-white outline-none focus:border-indigo-500">
+          </div>
+          <p class="text-[11px] text-slate-400">Hệ thống sẽ tự động tính toán số ngày, giờ, phút, giây còn lại tính từ thời điểm hiện tại đến mốc này.</p>
+        </div>
+
+        <!-- Mode 3: Quick Preset Buttons -->
+        <div class="space-y-2 bg-slate-950/40 p-3.5 border border-slate-800/80">
+          <label class="font-bold text-slate-300 text-[11px] uppercase tracking-wider block">Phím chọn nhanh (Quick Presets):</label>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" onclick="setPresetTimer(0, 0, 15, 0)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-semibold transition">15 phút</button>
+            <button type="button" onclick="setPresetTimer(0, 0, 30, 0)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-semibold transition">30 phút</button>
+            <button type="button" onclick="setPresetTimer(0, 1, 0, 0)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-semibold transition">1 giờ</button>
+            <button type="button" onclick="setPresetTimer(0, 2, 0, 0)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-semibold transition">2 giờ</button>
+            <button type="button" onclick="setPresetTimer(1, 0, 0, 0)" class="px-2.5 py-1 bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-700 text-[11px] font-semibold transition">1 ngày</button>
+            <button type="button" onclick="setPresetTimer(3, 0, 0, 0)" class="px-2.5 py-1 bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-700 text-[11px] font-semibold transition">3 ngày</button>
+            <button type="button" onclick="setPresetTimer(7, 0, 0, 0)" class="px-2.5 py-1 bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-700 text-[11px] font-semibold transition">7 ngày</button>
+            <button type="button" onclick="quickAddTimer(300)" class="px-2.5 py-1 bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-700/50 text-[11px] font-semibold transition">+5 phút</button>
+            <button type="button" onclick="quickAddTimer(900)" class="px-2.5 py-1 bg-emerald-900/30 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-700/50 text-[11px] font-semibold transition">+15 phút</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2">
+        <button type="button" onclick="resetCountdownTimer()" class="px-3 py-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/60 text-xs font-semibold rounded-none transition flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          <span>Khôi phục gốc</span>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeTimerConfigModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-none transition">
+            Hủy
+          </button>
+          <button type="button" onclick="applyCustomCountdownTimer()" class="px-5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold text-xs rounded-none shadow-lg shadow-indigo-600/30 transition flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span>Áp dụng Đếm ngược</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
   <!-- MODAL 2: TẠO KỲ THI MỚI & SOẠN ĐỀ BÀI TỰ DO (CHO GIÁO VIÊN) -->
   <!-- ========================================================= -->
   <div id="create-contest-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] hidden items-center justify-center p-4">
@@ -1809,19 +1977,40 @@
             <input type="text" id="new-contest-title" required value="HaUI IT Contest: Vòng 2 - Thuật toán & Kiểm thử Tự động" class="w-full bg-slate-900 border border-slate-700 rounded-none px-3 py-2 text-xs text-white outline-none focus:border-amber-500">
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block font-medium text-slate-300 mb-1">Thời lượng (phút):</label>
-              <input type="number" id="new-contest-duration" min="15" max="300" value="90" required class="w-full bg-slate-900 border border-slate-700 rounded-none px-3 py-2 text-xs text-white outline-none focus:border-amber-500">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="block font-medium text-slate-300">Thời lượng kỳ thi (Ngày - Giờ - Phút - Giây):</label>
+              <span id="new-contest-duration-summary" class="text-[11px] text-amber-400 font-mono font-semibold">Tổng: 90 phút (01:30:00)</span>
             </div>
-            <div>
-              <label class="block font-medium text-slate-300 mb-1">Cơ chế chấm điểm:</label>
-              <select id="new-contest-grader-mode" class="w-full bg-slate-900 border border-slate-700 rounded-none px-3 py-2 text-xs text-white outline-none focus:border-amber-500">
-                <option value="hybrid">Kết hợp: Sandbox + AI Auto-Judge (Khuyên dùng)</option>
-                <option value="ai-only">Chấm AI tự động (Đánh giá yêu cầu đề & Logic code)</option>
-                <option value="sandbox-only">Chấm Sandbox truyền thống (I/O Test cases)</option>
-              </select>
+            <div class="grid grid-cols-4 gap-2">
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">Ngày (Days)</label>
+                <input type="number" id="new-contest-days" min="0" max="365" value="0" oninput="syncNewContestDuration()" class="w-full bg-slate-900 border border-slate-700 rounded-none px-2 py-1.5 text-xs text-center font-mono font-bold text-white outline-none focus:border-amber-500">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">Giờ (Hours)</label>
+                <input type="number" id="new-contest-hours" min="0" max="23" value="1" oninput="syncNewContestDuration()" class="w-full bg-slate-900 border border-slate-700 rounded-none px-2 py-1.5 text-xs text-center font-mono font-bold text-white outline-none focus:border-amber-500">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-0.5 font-bold">Phút (Mins)</label>
+                <input type="number" id="new-contest-minutes" min="0" max="59" value="30" oninput="syncNewContestDuration()" class="w-full bg-slate-900 border border-slate-700 rounded-none px-2 py-1.5 text-xs text-center font-mono font-bold text-white outline-none focus:border-amber-500">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-0.5 font-bold text-amber-400">Giây (Secs)</label>
+                <input type="number" id="new-contest-seconds" min="0" max="59" value="0" oninput="syncNewContestDuration()" class="w-full bg-slate-900 border border-slate-700 rounded-none px-2 py-1.5 text-xs text-center font-mono font-bold text-amber-400 outline-none focus:border-amber-500">
+              </div>
             </div>
+            <!-- Hidden backward-compatible duration field in minutes -->
+            <input type="hidden" id="new-contest-duration" value="90">
+          </div>
+
+          <div>
+            <label class="block font-medium text-slate-300 mb-1">Cơ chế chấm điểm:</label>
+            <select id="new-contest-grader-mode" class="w-full bg-slate-900 border border-slate-700 rounded-none px-3 py-2 text-xs text-white outline-none focus:border-amber-500">
+              <option value="hybrid">Kết hợp: Sandbox + AI Auto-Judge (Khuyên dùng)</option>
+              <option value="ai-only">Chấm AI tự động (Đánh giá yêu cầu đề & Logic code)</option>
+              <option value="sandbox-only">Chấm Sandbox truyền thống (I/O Test cases)</option>
+            </select>
           </div>
         </div>
 
@@ -4995,6 +5184,16 @@ def solve_lis(arr):
             handleIncomingNewContest(e.data.contest, true);
           } else if (e.data && (e.data.type === 'NEW_SUBMISSION' || e.data.type === 'SUBMISSION_GRADED' || e.data.type === 'REFRESH_LEADERBOARD')) {
             loadSubmissionsData();
+          } else if (e.data && e.data.type === 'TIMER_STATE_UPDATE') {
+            if (window.timerManager) {
+              if (e.data.targetEndTime && e.data.activeContestId) {
+                timerManager.customTargetMap[e.data.activeContestId] = e.data.targetEndTime;
+              }
+              if (typeof e.data.isPaused === 'boolean') {
+                timerManager.isPaused = e.data.isPaused;
+              }
+              timerManager.updateDisplay();
+            }
           }
         };
       }
@@ -6205,9 +6404,35 @@ def solve_lis(arr):
       showToast(`Đã lưu đề bài mới [${pId}: ${title}] với ${finalTestCases.length} test cases (${visibleCases.length} Hiện, ${finalTestCases.length - visibleCases.length} Ẩn) vào CSDL!`, "success");
     }
 
+    function syncNewContestDuration() {
+      const d = Math.max(0, parseInt(document.getElementById('new-contest-days')?.value) || 0);
+      const h = Math.max(0, parseInt(document.getElementById('new-contest-hours')?.value) || 0);
+      const m = Math.max(0, parseInt(document.getElementById('new-contest-minutes')?.value) || 0);
+      const s = Math.max(0, parseInt(document.getElementById('new-contest-seconds')?.value) || 0);
+      const totalSecs = (d * 86400) + (h * 3600) + (m * 60) + s;
+      const totalMins = Math.max(1, Math.round(totalSecs / 60));
+      const durHidden = document.getElementById('new-contest-duration');
+      if (durHidden) durHidden.value = totalMins;
+
+      const summary = document.getElementById('new-contest-duration-summary');
+      if (summary) {
+        let parts = [];
+        if (d > 0) parts.push(`${d} ngày`);
+        if (h > 0) parts.push(`${h} giờ`);
+        if (m > 0) parts.push(`${m} phút`);
+        if (s > 0) parts.push(`${s} giây`);
+        summary.innerText = `Tổng: ${parts.join(' ') || '0 giây'} (${totalMins} phút)`;
+      }
+    }
+
     function submitNewContest() {
       const title = document.getElementById('new-contest-title').value.trim();
-      const duration = parseInt(document.getElementById('new-contest-duration').value) || 90;
+      const days = Math.max(0, parseInt(document.getElementById('new-contest-days')?.value) || 0);
+      const hours = Math.max(0, parseInt(document.getElementById('new-contest-hours')?.value) || 0);
+      const minutes = Math.max(0, parseInt(document.getElementById('new-contest-minutes')?.value) || 0);
+      const seconds = Math.max(0, parseInt(document.getElementById('new-contest-seconds')?.value) || 0);
+      const totalSeconds = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
+      const duration = totalSeconds > 0 ? Math.max(1, Math.round(totalSeconds / 60)) : (parseInt(document.getElementById('new-contest-duration').value) || 90);
       const graderMode = document.getElementById('new-contest-grader-mode').value;
 
       const checkedBoxes = document.querySelectorAll('input[name="contest-prob"]:checked');
@@ -6226,6 +6451,7 @@ def solve_lis(arr):
         creator: currentUser.name,
         startTime: new Date(),
         durationMinutes: duration,
+        durationSeconds: totalSeconds > 0 ? totalSeconds : (duration * 60),
         status: "Đang diễn ra",
         rule: "Luật ICPC (Penalty 20 phút/lần nộp sai)",
         graderMode: graderMode,
@@ -6234,6 +6460,14 @@ def solve_lis(arr):
 
       contests.unshift(newContest);
       activeContestId = newContestId;
+
+      if (window.timerManager) {
+        if (totalSeconds > 0) {
+          timerManager.setDurationForActiveContest(days, hours, minutes, seconds);
+        } else {
+          timerManager.resetToDefault();
+        }
+      }
 
       // Persist to backend API
       try {
@@ -6327,6 +6561,9 @@ def solve_lis(arr):
       // Check Cancelled State
       updateContestCancelledUI(activeC);
       renderLeaderboard();
+      if (window.timerManager) {
+        timerManager.updateDisplay();
+      }
     }
 
     function switchActiveContest(cId) {
@@ -9220,19 +9457,339 @@ def solve_lis(arr):
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    // Contest Countdown Timer
-    let contestRemainingSeconds = 6135;
-    setInterval(() => {
-      const activeC = contests.find(c => c.id === activeContestId) || contests[0];
-      if (activeC.status === 'Đang diễn ra' && contestRemainingSeconds > 0) {
-        contestRemainingSeconds--;
-        const h = Math.floor(contestRemainingSeconds / 3600).toString().padStart(2, '0');
-        const m = Math.floor((contestRemainingSeconds % 3600) / 60).toString().padStart(2, '0');
-        const s = (contestRemainingSeconds % 60).toString().padStart(2, '0');
-        const timerEl = document.getElementById('contest-timer');
-        if (timerEl) timerEl.innerText = `${h}:${m}:${s}`;
+    // ========================================================
+    // CONTEST COUNTDOWN TIMER ENGINE (NGÀY - GIỜ - PHÚT - GIÂY)
+    // ========================================================
+    const timerManager = {
+      isPaused: false,
+      intervalId: null,
+      customTargetMap: {}, // Map contestId -> targetEndTime (timestamp ms)
+
+      init() {
+        this.loadState();
+        if (this.intervalId) clearInterval(this.intervalId);
+        this.intervalId = setInterval(() => this.tick(), 1000);
+        this.updateDisplay();
+      },
+
+      loadState() {
+        try {
+          const raw = localStorage.getItem('codearena_contest_timer_v2');
+          if (raw) {
+            const data = JSON.parse(raw);
+            this.isPaused = Boolean(data.isPaused);
+            this.customTargetMap = data.customTargetMap || {};
+          }
+        } catch (e) {}
+      },
+
+      saveState() {
+        try {
+          localStorage.setItem('codearena_contest_timer_v2', JSON.stringify({
+            isPaused: this.isPaused,
+            customTargetMap: this.customTargetMap
+          }));
+        } catch (e) {}
+      },
+
+      getTargetEndTime(contest) {
+        if (!contest) return Date.now();
+        if (this.customTargetMap[contest.id]) {
+          return this.customTargetMap[contest.id];
+        }
+        // Calculate based on startTime and duration
+        const startTime = contest.startTime ? new Date(contest.startTime).getTime() : Date.now();
+        const durationSecs = contest.durationSeconds || ((contest.durationMinutes || 120) * 60);
+        return startTime + (durationSecs * 1000);
+      },
+
+      setTargetTimeForActiveContest(targetTimestamp) {
+        const activeC = contests.find(c => c.id === activeContestId) || contests[0];
+        if (activeC) {
+          this.customTargetMap[activeC.id] = targetTimestamp;
+          this.isPaused = false;
+          this.saveState();
+          this.updateDisplay();
+          this.broadcastUpdate();
+        }
+      },
+
+      setDurationForActiveContest(days, hours, minutes, seconds) {
+        const totalSecs = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
+        const targetTimestamp = Date.now() + (totalSecs * 1000);
+        this.setTargetTimeForActiveContest(targetTimestamp);
+      },
+
+      resetToDefault() {
+        const activeC = contests.find(c => c.id === activeContestId) || contests[0];
+        if (activeC) {
+          delete this.customTargetMap[activeC.id];
+          this.isPaused = false;
+          this.saveState();
+          this.updateDisplay();
+          this.broadcastUpdate();
+        }
+      },
+
+      togglePause() {
+        this.isPaused = !this.isPaused;
+        this.saveState();
+        this.updateDisplay();
+        this.broadcastUpdate();
+      },
+
+      getRemainingSeconds() {
+        const activeC = contests.find(c => c.id === activeContestId) || contests[0];
+        if (!activeC) return 0;
+        const target = this.getTargetEndTime(activeC);
+        return Math.max(0, Math.floor((target - Date.now()) / 1000));
+      },
+
+      tick() {
+        const activeC = contests.find(c => c.id === activeContestId) || contests[0];
+        if (!activeC) return;
+
+        if (activeC.status === 'Đã hủy') {
+          this.updateDisplay();
+          return;
+        }
+
+        if (this.isPaused) {
+          // If paused, move target time forward by 1s so countdown stays frozen
+          if (this.customTargetMap[activeC.id]) {
+            this.customTargetMap[activeC.id] += 1000;
+          } else {
+            const currentRem = this.getRemainingSeconds();
+            this.customTargetMap[activeC.id] = Date.now() + (currentRem * 1000) + 1000;
+          }
+          this.saveState();
+          this.updateDisplay();
+          return;
+        }
+
+        this.updateDisplay();
+      },
+
+      updateDisplay() {
+        const activeC = contests.find(c => c.id === activeContestId) || contests[0];
+        if (!activeC) return;
+
+        const remSecs = this.getRemainingSeconds();
+
+        const d = Math.floor(remSecs / 86400);
+        const h = Math.floor((remSecs % 86400) / 3600);
+        const m = Math.floor((remSecs % 3600) / 60);
+        const s = remSecs % 60;
+
+        const dStr = d.toString().padStart(2, '0');
+        const hStr = h.toString().padStart(2, '0');
+        const mStr = m.toString().padStart(2, '0');
+        const sStr = s.toString().padStart(2, '0');
+
+        const daysEl = document.getElementById('timer-days');
+        const hoursEl = document.getElementById('timer-hours');
+        const minsEl = document.getElementById('timer-minutes');
+        const secsEl = document.getElementById('timer-seconds');
+        const legacyEl = document.getElementById('contest-timer');
+        const subtextEl = document.getElementById('contest-timer-subtext');
+        const pauseBtn = document.getElementById('btn-quick-pause-timer');
+        const liveDot = document.getElementById('timer-live-dot');
+
+        if (daysEl) daysEl.innerText = dStr;
+        if (hoursEl) hoursEl.innerText = hStr;
+        if (minsEl) minsEl.innerText = mStr;
+        if (secsEl) secsEl.innerText = sStr;
+
+        if (legacyEl) {
+          legacyEl.innerText = `${d > 0 ? dStr + 'd ' : ''}${hStr}:${mStr}:${sStr}`;
+        }
+
+        if (pauseBtn) {
+          pauseBtn.innerText = this.isPaused ? "Tiếp tục" : "Tạm dừng";
+          pauseBtn.className = this.isPaused
+            ? "text-[10px] text-amber-400 hover:text-amber-300 font-bold transition underline underline-offset-2"
+            : "text-[10px] text-slate-400 hover:text-slate-200 transition underline underline-offset-2";
+        }
+
+        if (activeC.status === 'Đã hủy') {
+          if (subtextEl) {
+            subtextEl.innerText = "Kỳ thi đã hủy";
+            subtextEl.className = "text-rose-400 font-medium whitespace-nowrap";
+          }
+          if (liveDot) liveDot.className = "w-2 h-2 rounded-full bg-rose-500 shrink-0";
+          return;
+        }
+
+        if (this.isPaused) {
+          if (subtextEl) {
+            subtextEl.innerText = "Đồng hồ tạm dừng";
+            subtextEl.className = "text-amber-400 font-medium whitespace-nowrap";
+          }
+          if (liveDot) liveDot.className = "w-2 h-2 rounded-full bg-amber-400 shrink-0";
+          return;
+        }
+
+        if (remSecs <= 0) {
+          if (subtextEl) {
+            subtextEl.innerText = "Hết giờ làm bài";
+            subtextEl.className = "text-rose-400 font-bold whitespace-nowrap animate-pulse";
+          }
+          if (liveDot) liveDot.className = "w-2 h-2 rounded-full bg-rose-500 shrink-0";
+          if (secsEl) secsEl.className = "w-11 sm:w-13 h-9 sm:h-10 bg-rose-950/80 border border-rose-500 text-rose-400 font-mono text-lg sm:text-xl font-black flex items-center justify-center shadow-inner";
+        } else {
+          if (subtextEl) {
+            subtextEl.innerText = "Đang tính điểm Live";
+            subtextEl.className = "text-emerald-400 font-medium whitespace-nowrap";
+          }
+          if (liveDot) liveDot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0";
+          if (secsEl) secsEl.className = "w-11 sm:w-13 h-9 sm:h-10 bg-slate-900 border border-indigo-500/40 text-amber-400 font-mono text-lg sm:text-xl font-black flex items-center justify-center shadow-inner";
+        }
+      },
+
+      broadcastUpdate() {
+        if (typeof contestBroadcastChannel !== 'undefined' && contestBroadcastChannel) {
+          try {
+            contestBroadcastChannel.postMessage({
+              type: 'TIMER_STATE_UPDATE',
+              activeContestId: activeContestId,
+              isPaused: this.isPaused,
+              targetEndTime: this.customTargetMap[activeContestId]
+            });
+          } catch (e) {}
+        }
       }
-    }, 1000);
+    };
+
+    // Global Modal Functions for Timer Configuration
+    function switchTimerConfigMode(mode) {
+      const durationSection = document.getElementById('timer-mode-duration');
+      const targetSection = document.getElementById('timer-mode-target');
+      if (mode === 'duration') {
+        if (durationSection) durationSection.classList.remove('hidden');
+        if (targetSection) targetSection.classList.add('hidden');
+      } else {
+        if (durationSection) durationSection.classList.add('hidden');
+        if (targetSection) targetSection.classList.remove('hidden');
+      }
+    }
+
+    function openTimerConfigModal() {
+      const activeC = contests.find(c => c.id === activeContestId) || contests[0];
+      const titleEl = document.getElementById('timer-modal-contest-title');
+      if (titleEl && activeC) {
+        titleEl.innerText = activeC.title;
+      }
+
+      const remSecs = timerManager.getRemainingSeconds();
+      const d = Math.floor(remSecs / 86400);
+      const h = Math.floor((remSecs % 86400) / 3600);
+      const m = Math.floor((remSecs % 3600) / 60);
+      const s = remSecs % 60;
+
+      const daysInp = document.getElementById('cfg-timer-days');
+      const hoursInp = document.getElementById('cfg-timer-hours');
+      const minsInp = document.getElementById('cfg-timer-minutes');
+      const secsInp = document.getElementById('cfg-timer-seconds');
+      if (daysInp) daysInp.value = d;
+      if (hoursInp) hoursInp.value = h;
+      if (minsInp) minsInp.value = m;
+      if (secsInp) secsInp.value = s;
+
+      const dtInp = document.getElementById('cfg-timer-datetime');
+      if (dtInp) {
+        const targetMs = timerManager.getTargetEndTime(activeC);
+        const targetDate = new Date(targetMs);
+        const yyyy = targetDate.getFullYear();
+        const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(targetDate.getDate()).padStart(2, '0');
+        const hh = String(targetDate.getHours()).padStart(2, '0');
+        const min = String(targetDate.getMinutes()).padStart(2, '0');
+        dtInp.value = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+      }
+
+      const modal = document.getElementById('timer-config-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+    }
+
+    function closeTimerConfigModal() {
+      const modal = document.getElementById('timer-config-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function setPresetTimer(days, hours, minutes, seconds) {
+      const daysInp = document.getElementById('cfg-timer-days');
+      const hoursInp = document.getElementById('cfg-timer-hours');
+      const minsInp = document.getElementById('cfg-timer-minutes');
+      const secsInp = document.getElementById('cfg-timer-seconds');
+      if (daysInp) daysInp.value = days;
+      if (hoursInp) hoursInp.value = hours;
+      if (minsInp) minsInp.value = minutes;
+      if (secsInp) secsInp.value = seconds;
+
+      const durationRadio = document.querySelector('input[name="timer-input-mode"][value="duration"]');
+      if (durationRadio) durationRadio.checked = true;
+      switchTimerConfigMode('duration');
+    }
+
+    function quickAddTimer(secondsToAdd) {
+      const activeC = contests.find(c => c.id === activeContestId) || contests[0];
+      const currentTarget = timerManager.getTargetEndTime(activeC);
+      const newTarget = Math.max(Date.now(), currentTarget) + (secondsToAdd * 1000);
+      timerManager.setTargetTimeForActiveContest(newTarget);
+      const mins = Math.round(secondsToAdd / 60);
+      showToast(`Đã cộng thêm ${mins >= 60 ? (mins / 60) + ' giờ' : mins + ' phút'} vào đồng hồ đếm ngược!`, "success");
+      closeTimerConfigModal();
+    }
+
+    function applyCustomCountdownTimer() {
+      const mode = document.querySelector('input[name="timer-input-mode"]:checked')?.value || 'duration';
+      if (mode === 'duration') {
+        const d = Math.max(0, parseInt(document.getElementById('cfg-timer-days')?.value) || 0);
+        const h = Math.max(0, parseInt(document.getElementById('cfg-timer-hours')?.value) || 0);
+        const m = Math.max(0, parseInt(document.getElementById('cfg-timer-minutes')?.value) || 0);
+        const s = Math.max(0, parseInt(document.getElementById('cfg-timer-seconds')?.value) || 0);
+        if (d === 0 && h === 0 && m === 0 && s === 0) {
+          showToast("Vui lòng chọn thời gian lớn hơn 0 giây!", "warn");
+          return;
+        }
+        timerManager.setDurationForActiveContest(d, h, m, s);
+        showToast(`Đã cập nhật đồng hồ đếm ngược: ${d > 0 ? d + ' ngày ' : ''}${h} giờ ${m} phút ${s} giây!`, "success");
+      } else {
+        const dtVal = document.getElementById('cfg-timer-datetime')?.value;
+        if (!dtVal) {
+          showToast("Vui lòng chọn ngày giờ kết thúc!", "warn");
+          return;
+        }
+        const targetMs = new Date(dtVal).getTime();
+        if (isNaN(targetMs) || targetMs <= Date.now()) {
+          showToast("Mốc thời gian kết thúc phải lớn hơn thời điểm hiện tại!", "warn");
+          return;
+        }
+        timerManager.setTargetTimeForActiveContest(targetMs);
+        showToast(`Đã đặt mốc kết thúc: ${new Date(targetMs).toLocaleString('vi-VN')}!`, "success");
+      }
+      closeTimerConfigModal();
+    }
+
+    function togglePauseCountdown() {
+      timerManager.togglePause();
+      showToast(timerManager.isPaused ? "Đồng hồ đếm ngược đã tạm dừng!" : "Đồng hồ đếm ngược tiếp tục chạy!", "info");
+    }
+
+    function resetCountdownTimer() {
+      timerManager.resetToDefault();
+      showToast("Đã đặt lại đồng hồ đếm ngược về thời lượng mặc định của kỳ thi!", "success");
+      closeTimerConfigModal();
+    }
+
+    // Initialize Timer Manager
+    timerManager.init();
 
     // Initial Initialization
     const mainNav = document.getElementById('main-nav');
@@ -9266,6 +9823,86 @@ def solve_lis(arr):
         } else if ((e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
           showToast("Mã nguồn đã được tự động lưu trong phiên làm việc!", "success");
+        }
+      });
+
+      // Auto-closing brackets, smart indentation & editor conveniences
+      codeEditorInput.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+
+        // 1. Skip over closing bracket / quote
+        const closeChars = [')', '}', ']', '"', "'"];
+        if (closeChars.includes(e.key) && start === end && this.value[start] === e.key) {
+          e.preventDefault();
+          this.selectionStart = this.selectionEnd = start + 1;
+          return;
+        }
+
+        // 2. Auto-close brackets & quotes
+        const pairs = {
+          '(': ')',
+          '[': ']',
+          '{': '}',
+          '"': '"',
+          "'": "'"
+        };
+        if (pairs[e.key]) {
+          e.preventDefault();
+          const openChar = e.key;
+          const closeChar = pairs[openChar];
+          const selectedText = this.value.substring(start, end);
+          this.value = this.value.substring(0, start) + openChar + selectedText + closeChar + this.value.substring(end);
+          if (start === end) {
+            this.selectionStart = this.selectionEnd = start + 1;
+          } else {
+            this.selectionStart = start + 1;
+            this.selectionEnd = end + 1;
+          }
+          updateEditorStats();
+          return;
+        }
+
+        // 3. Backspace deletes matching pair
+        if (e.key === 'Backspace' && start === end && start > 0) {
+          const prevChar = this.value[start - 1];
+          const nextChar = this.value[start];
+          if (pairs[prevChar] === nextChar) {
+            e.preventDefault();
+            this.value = this.value.substring(0, start - 1) + this.value.substring(start + 1);
+            this.selectionStart = this.selectionEnd = start - 1;
+            updateEditorStats();
+            return;
+          }
+        }
+
+        // 4. Enter key behaviors: Auto-close & indent after '{', or Auto-indent / Python ':' indent
+        if (e.key === 'Enter') {
+          const lineStart = this.value.lastIndexOf('\n', start - 1) + 1;
+          const lineBeforeCursor = this.value.substring(lineStart, start);
+          const indent = (lineBeforeCursor.match(/^[ \t]*/) || [''])[0];
+
+          // Auto-close and indent on Enter after '{'
+          if (start > 0 && this.value[start - 1] === '{') {
+            e.preventDefault();
+            const hasClosingBrace = this.value[end] === '}';
+            const insertText = "\n" + indent + "    \n" + indent + (hasClosingBrace ? "" : "}");
+            this.value = this.value.substring(0, start) + insertText + this.value.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1 + indent.length + 4;
+            updateEditorStats();
+            return;
+          }
+
+          // Auto-indent on Enter (maintain indent, add 4 extra spaces if line ends with ':')
+          e.preventDefault();
+          const extraIndent = lineBeforeCursor.trimEnd().endsWith(':') ? "    " : "";
+          const insertText = "\n" + indent + extraIndent;
+          this.value = this.value.substring(0, start) + insertText + this.value.substring(end);
+          this.selectionStart = this.selectionEnd = start + insertText.length;
+          updateEditorStats();
+          return;
         }
       });
       codeEditorInput.addEventListener('input', updateEditorStats);

@@ -357,9 +357,11 @@ async def get_submissions(
     student_id: Optional[str] = Query(None, description="Lọc theo mã sinh viên"),
     problem_id: Optional[str] = Query(None, description="Lọc theo mã bài tập"),
     status: Optional[str] = Query(None, description="Lọc theo trạng thái chấm: graded, pending, Gian lận, v.v."),
-    q: Optional[str] = Query(None, description="Tìm kiếm theo tên SV, mã SV, mã bài nộp")
+    q: Optional[str] = Query(None, description="Tìm kiếm theo tên SV, mã SV, mã bài nộp"),
+    limit: Optional[int] = Query(None, ge=1, le=500, description="Số lượng bản ghi tối đa"),
+    offset: Optional[int] = Query(0, ge=0, description="Độ lệch phân trang")
 ):
-    return list_submissions(student_id=student_id, problem_id=problem_id, status=status, q=q)
+    return list_submissions(student_id=student_id, problem_id=problem_id, status=status, q=q, limit=limit, offset=offset)
 
 @app.get("/api/submissions/{sub_id}", response_model=SubmissionResponse, summary="Xem chi tiết một bài nộp")
 async def get_submission_detail(sub_id: str):
