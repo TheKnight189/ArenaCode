@@ -178,11 +178,33 @@ async def get_system_stats():
 async def get_ai_status():
     return get_ai_config()
 
-@app.post("/api/config/gemini-key", summary="Cập nhật Google Gemini API Key")
+@app.post("/api/config/gemini-key", summary="Cập nhật Google Gemini API Key (Chỉ dành cho Admin)")
 async def update_gemini_key(req: dict):
+    # Xác thực phân quyền: Giáo viên và Sinh viên không có quyền truy cập hoặc thay đổi API Key
+    role = req.get("role") or req.get("user_role")
+    user_id = req.get("user_id") or req.get("admin_id")
+    
+    if user_id:
+        user = get_user_by_id(user_id)
+        if user and user.get("role") != "Admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Truy cập bị từ chối: Giáo viên và Sinh viên không có quyền truy cập hoặc thay đổi API Key hệ thống!"
+            )
+    elif role and role != "Admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Truy cập bị từ chối: Giáo viên và Sinh viên không có quyền truy cập hoặc thay đổi API Key hệ thống!"
+        )
+
     key = req.get("api_key", "").strip()
     if not key:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Vui lòng cung cấp API Key hợp lệ!")
+        saved = save_gemini_key("")
+        return {
+            "message": "Đã hủy cấu hình Gemini API Key. Động cơ AST Static Heuristic được kích hoạt mặc định.",
+            "provider": "AST Heuristic Engine",
+            "is_ai_real": False
+        }
     saved = save_gemini_key(key)
     if not saved:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Không thể lưu API Key vào hệ thống!")

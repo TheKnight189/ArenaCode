@@ -124,7 +124,7 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 <span>Backend: Online</span>
               </span>
-              <button onclick="openAIConfigModal()" id="header-ai-status" title="Bấm để xem hoặc cấu hình Google Gemini API Key" class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 rounded-none border border-indigo-500/30 whitespace-nowrap transition cursor-pointer">
+              <button onclick="openAIConfigModal()" id="header-ai-status" title="Cấu hình Google Gemini API Key / AI Auto-Judge (Dành riêng cho Admin)" class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 rounded-none border border-indigo-500/30 whitespace-nowrap transition cursor-pointer">
                 <svg class="w-3.5 h-3.5 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 <span id="ai-engine-label">AI: Khởi tạo...</span>
               </button>
@@ -2537,8 +2537,11 @@
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
         </div>
         <div>
-          <h3 class="text-base font-bold text-white">Động cơ Chấm bài AI (Gemini / AST)</h3>
-          <p class="text-xs text-indigo-300">Tích hợp Google Gemini REST API & AST Heuristic</p>
+          <div class="flex items-center gap-2">
+            <h3 class="text-base font-bold text-white">Động cơ Chấm bài AI (Gemini / AST)</h3>
+            <span class="px-2 py-0.5 rounded-none text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">Chỉ Admin</span>
+          </div>
+          <p class="text-xs text-indigo-300">Tích hợp Google Gemini REST API & AST Heuristic (Giáo viên và Sinh viên không có quyền thay đổi)</p>
         </div>
       </div>
 
@@ -3724,26 +3727,28 @@ def solve_lis(arr):
         if (headerAiBtn) {
           headerAiBtn.onclick = openAIConfigModal;
           headerAiBtn.style.cursor = 'pointer';
-          headerAiBtn.title = "Cấu hình Google Gemini API Key / AI Auto-Judge (Admin)";
+          headerAiBtn.title = "Cấu hình Google Gemini API Key / AI Auto-Judge (Dành riêng cho Admin)";
         }
       } else if (role === 'Giáo viên') {
         // GIÁO VIÊN: Thấy Chấm bài, Contest (Tạo kỳ thi), Báo cáo kết quả lớp.
         // TUYỆT ĐỐI KHÔNG HIỆN MỤC QUẢN LÝ TÀI KHOẢN (Admin only)!
+        // TUYỆT ĐỐI KHÔNG CÓ QUYỀN TRUY CẬP VÀ THAY ĐỔI API KEY!
         if (navGrading) { navGrading.style.display = 'flex'; navGrading.classList.remove('hidden'); }
         if (navAccounts) { navAccounts.style.display = 'none'; navAccounts.classList.add('hidden'); }
         if (navResults) { navResults.style.display = 'flex'; navResults.classList.remove('hidden'); }
         if (teacherContestAction) { teacherContestAction.style.display = 'flex'; teacherContestAction.classList.remove('hidden'); }
         if (tabAccounts) { tabAccounts.style.display = 'none'; tabAccounts.classList.add('hidden'); }
         if (headerAiBtn) {
-          headerAiBtn.onclick = openAIConfigModal;
-          headerAiBtn.style.cursor = 'pointer';
-          headerAiBtn.title = "Cấu hình Google Gemini API Key / AI Auto-Judge (Giáo viên)";
+          headerAiBtn.onclick = null;
+          headerAiBtn.style.cursor = 'default';
+          headerAiBtn.title = "Trạng thái Động cơ AI Auto-Judge (Chỉ Quản trị viên mới có quyền cấu hình API Key)";
         }
       } else if (role === 'Sinh viên' || role === 'student') {
         // SINH VIÊN: CHỈ THẤY IDE, CONTEST (XEM BXH), KẾT QUẢ (CÁ NHÂN), HỒ SƠ.
         // TUYỆT ĐỐI KHÔNG HIỆN MỤC XEM BÀI & CHẤM ĐIỂM!
         // TUYỆT ĐỐI KHÔNG HIỆN MỤC QUẢN LÝ TÀI KHOẢN!
         // TUYỆT ĐỐI KHÔNG HIỆN NÚT TẠO / HỦY KỲ THI TRONG CONTEST!
+        // TUYỆT ĐỐI KHÔNG CÓ QUYỀN TRUY CẬP VÀ THAY ĐỔI API KEY!
         if (navGrading) { navGrading.style.display = 'none'; navGrading.classList.add('hidden'); }
         if (navAccounts) { navAccounts.style.display = 'none'; navAccounts.classList.add('hidden'); }
         if (navResults) { navResults.style.display = 'flex'; navResults.classList.remove('hidden'); }
@@ -3753,7 +3758,7 @@ def solve_lis(arr):
         if (headerAiBtn) {
           headerAiBtn.onclick = null;
           headerAiBtn.style.cursor = 'default';
-          headerAiBtn.title = "Hệ thống Tự động Chấm & Đánh giá AI AST/Gemini";
+          headerAiBtn.title = "Hệ thống Tự động Chấm & Đánh giá AI AST/Gemini (Sinh viên không có quyền truy cập API Key)";
         }
       } else {
         // GUEST (CHƯA ĐĂNG NHẬP): Chỉ thấy IDE, Contest, Hồ sơ. Ẩn hoàn toàn Chấm điểm, Kết quả, Tài khoản!
@@ -8399,10 +8404,19 @@ def solve_lis(arr):
     }
 
     // =========================================================================
-    // MODAL CẤU HÌNH AI GOOGLE GEMINI (DÀNH CHO GIÁO VIÊN & ADMIN)
+    // MODAL CẤU HÌNH AI GOOGLE GEMINI (CHỈ DÀNH CHO ADMIN - QUẢN TRỊ VIÊN)
+    // GIÁO VIÊN VÀ SINH VIÊN TUYỆT ĐỐI KHÔNG CÓ QUYỀN TRUY CẬP VÀ THAY ĐỔI
     // =========================================================================
+    function checkAdminOnlyAccess() {
+      if (!currentUser || currentUser.role !== 'Admin') {
+        showToast("Truy cập bị từ chối: Giáo viên và Sinh viên không có quyền truy cập hoặc thay đổi API Key!", "warn");
+        return false;
+      }
+      return true;
+    }
+
     function openAIConfigModal() {
-      if (!checkTeacherOrAdminAccess()) return;
+      if (!checkAdminOnlyAccess()) return;
       const modal = document.getElementById('ai-config-modal');
       if (!modal) return;
       modal.classList.remove('hidden');
@@ -8425,15 +8439,29 @@ def solve_lis(arr):
       }
     }
 
-    function saveGeminiApiKey() {
-      if (!checkTeacherOrAdminAccess()) return;
+    async function saveGeminiApiKey() {
+      if (!checkAdminOnlyAccess()) return;
       const inputKey = document.getElementById('input-gemini-key');
       const keyVal = inputKey ? inputKey.value.trim() : '';
       if (keyVal) {
         localStorage.setItem('gemini_api_key', keyVal);
+        try {
+          await fetch(`${API_BASE_URL}/config/gemini-key`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ api_key: keyVal, role: currentUser.role, user_id: currentUser.id })
+          });
+        } catch (e) {}
         showToast("Đã lưu Google Gemini API Key thành công!", "success");
       } else {
         localStorage.removeItem('gemini_api_key');
+        try {
+          await fetch(`${API_BASE_URL}/config/gemini-key`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ api_key: "", role: currentUser.role, user_id: currentUser.id })
+          });
+        } catch (e) {}
         showToast("Đã kích hoạt AST Static Heuristic Engine làm động cơ mặc định!", "info");
       }
       closeAIConfigModal();

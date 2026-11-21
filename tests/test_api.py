@@ -237,5 +237,57 @@ class TestContestTimerAPI(unittest.TestCase):
         self.assertIn("id", created)
 
 
+class TestAPIKeyAuthorization(unittest.TestCase):
+    """Tests to verify Teachers and Students CANNOT access or change the API Key."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.client = TestClient(app)
+
+    def test_teacher_forbidden_from_updating_api_key(self):
+        """Verify Teacher role is rejected with 403 Forbidden when trying to update API key."""
+        payload = {
+            "api_key": "AIzaSyFakeKeyForTeacherTest123",
+            "role": "Giáo viên",
+            "user_id": "GV-HAUI-01"
+        }
+        response = self.client.post("/api/config/gemini-key", json=payload)
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("Truy cập bị từ chối", response.json()["detail"])
+
+    def test_student_forbidden_from_updating_api_key(self):
+        """Verify Student role is rejected with 403 Forbidden when trying to update API key."""
+        payload = {
+            "api_key": "AIzaSyFakeKeyForStudentTest456",
+            "role": "Sinh viên",
+            "user_id": "20240606239"
+        }
+        response = self.client.post("/api/config/gemini-key", json=payload)
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("Truy cập bị từ chối", response.json()["detail"])
+
+    def test_admin_allowed_to_update_api_key(self):
+        """Verify Admin role is authorized to update API key with 200 OK."""
+        payload = {
+            "api_key": "AIzaSyAdminValidKeyForTesting789",
+            "role": "Admin",
+            "user_id": "ADMIN-01"
+        }
+        response = self.client.post("/api/config/gemini-key", json=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Đã kích hoạt", response.json()["message"])
+
+    def test_admin_allowed_to_clear_api_key(self):
+        """Verify Admin can reset API key to use AST Static Heuristic Engine."""
+        payload = {
+            "api_key": "",
+            "role": "Admin",
+            "user_id": "ADMIN-01"
+        }
+        response = self.client.post("/api/config/gemini-key", json=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Đã hủy cấu hình Gemini API Key", response.json()["message"])
+
+
 if __name__ == "__main__":
     unittest.main()

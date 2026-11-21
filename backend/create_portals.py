@@ -141,6 +141,19 @@ def build_portals():
         teacher_html
     )
 
+    # Xóa Modal 9: Cấu hình Gemini AI Key (Chỉ Admin mới có quyền, Giáo viên không có quyền truy cập hoặc thay đổi)
+    teacher_html = re.sub(
+        r'<!-- =+\s*-->\s*<!-- MODAL 9: CẤU HÌNH GOOGLE GEMINI AI KEY[\s\S]*?(?=<!-- =+\s*-->\s*<!-- MODAL 10: SO SÁNH TRỰC QUAN MÃ NGUỒN)',
+        '',
+        teacher_html
+    )
+
+    # Đảm bảo header AI button cho Giáo viên là static badge (không có quyền bấm cấu hình API Key)
+    teacher_html = teacher_html.replace(
+        'title="Cấu hình Google Gemini API Key / AI Auto-Judge (Admin)"',
+        'title="Hệ thống Chấm Tự Động AI AST/Gemini Online (Chỉ Admin có quyền cấu hình API Key)"'
+    )
+
     teacher_path = os.path.join(base_dir, "teacher.html")
     with open(teacher_path, "w", encoding="utf-8") as f:
         f.write(teacher_html)
@@ -167,6 +180,10 @@ def build_portals():
     )
 
     # Hiển thị mặc định cả nav-grading, nav-accounts, teacher-contest-action trong HTML cho Admin
+    admin_html = admin_html.replace(
+        'id="header-ai-status" title="Trạng thái Động cơ AI Auto-Judge (Chỉ Quản trị viên mới có quyền cấu hình API Key)" class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-indigo-500/10 text-indigo-300 rounded-none border border-indigo-500/30 whitespace-nowrap transition cursor-default"',
+        'onclick="openAIConfigModal()" id="header-ai-status" title="Cấu hình Google Gemini API Key / AI Auto-Judge (Dành riêng cho Admin)" class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 rounded-none border border-indigo-500/30 whitespace-nowrap transition cursor-pointer"'
+    )
     admin_html = admin_html.replace(
         'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0 hidden" style="display: none;"',
         'id="nav-grading" class="nav-btn px-3 sm:px-3.5 py-1.5 rounded-none text-xs sm:text-sm font-medium transition flex items-center space-x-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent shrink-0"'
