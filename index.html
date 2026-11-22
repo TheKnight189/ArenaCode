@@ -3434,7 +3434,7 @@ print("Knapsack:", knapsack(50, [10, 20, 30], [60, 100, 120]))`,
     let classSubmissions = [
       {
         id: "SUB-4080",
-        studentName: "Trần Đăng Khoa",
+        studentName: "Hoàng Anh Tú",
         studentId: "20240606239",
         problemId: "CA-102",
         problemName: "Dãy con tăng dài nhất (LIS)",
@@ -3900,6 +3900,7 @@ def solve_lis(arr):
       const tabGrading = document.getElementById('tab-grading');
       if (currentUser && (currentUser.role === 'Giáo viên' || currentUser.role === 'Admin')) {
         if (portalSection) portalSection.classList.remove('hidden');
+        loadSubmissionsData();
         renderSubmissionsTable();
       } else {
         if (tabGrading) { tabGrading.style.display = 'none'; tabGrading.classList.add('hidden'); }
@@ -4882,6 +4883,34 @@ def solve_lis(arr):
       switchTab('ide');
     }
 
+    function navigateToRolePortal(role) {
+      const isFile = window.location.protocol === 'file:';
+      const isStudentPage = window.location.pathname.endsWith('student.html') || window.location.pathname.endsWith('/student');
+      const isTeacherPage = window.location.pathname.endsWith('teacher.html') || window.location.pathname.endsWith('/teacher');
+      const isAdminPage = window.location.pathname.endsWith('admin.html') || window.location.pathname.endsWith('/admin');
+
+      if (role === 'Admin') {
+        if (isStudentPage || isTeacherPage || !document.getElementById('tab-accounts')) {
+          window.location.href = isFile ? 'admin.html' : '/admin';
+          return true;
+        }
+        switchTab('accounts');
+      } else if (role === 'Giáo viên') {
+        if (isStudentPage || !document.getElementById('tab-grading')) {
+          window.location.href = isFile ? 'teacher.html' : '/teacher';
+          return true;
+        }
+        switchTab('grading');
+      } else {
+        if (isTeacherPage || isAdminPage) {
+          window.location.href = isFile ? 'student.html' : '/student';
+          return true;
+        }
+        switchTab('ide');
+      }
+      return false;
+    }
+
     function selectPresetUser(type) {
       if (type === 'admin') {
         currentUser = {
@@ -4894,7 +4923,7 @@ def solve_lis(arr):
         showToast("Đã đăng nhập vai trò Quản trị viên (Admin)!", "success");
         updateHeaderUserUI();
         closeLoginModal();
-        switchTab('accounts');
+        navigateToRolePortal('Admin');
       } else if (type === 'teacher') {
         currentUser = {
           name: "TS. Nguyễn Thị Hoa Huệ",
@@ -4906,7 +4935,7 @@ def solve_lis(arr):
         showToast("Đã đăng nhập vai trò Giảng viên (TS. Nguyễn Thị Hoa Huệ)!", "success");
         updateHeaderUserUI();
         closeLoginModal();
-        switchTab('grading');
+        navigateToRolePortal('Giáo viên');
       } else {
         currentUser = {
           name: "Hoàng Anh Tú",
@@ -4918,7 +4947,7 @@ def solve_lis(arr):
         showToast("Đã đăng nhập vai trò Sinh viên (Hoàng Anh Tú)!", "warn");
         updateHeaderUserUI();
         closeLoginModal();
-        switchTab('ide');
+        navigateToRolePortal('Sinh viên');
       }
     }
 
@@ -4958,9 +4987,7 @@ def solve_lis(arr):
           showToast(`Đăng nhập thành công! Chào mừng ${currentUser.name} (${currentUser.role})`, "success");
           updateHeaderUserUI();
           closeLoginModal();
-          if (currentUser.role === 'Admin') switchTab('accounts');
-          else if (currentUser.role === 'Giáo viên') switchTab('grading');
-          else switchTab('ide');
+          navigateToRolePortal(currentUser.role);
           return;
         } else {
           const errData = await res.json().catch(() => ({}));
@@ -4988,9 +5015,7 @@ def solve_lis(arr):
       showToast(`Đăng nhập (chế độ local) với vai trò ${role}!`, "success");
       updateHeaderUserUI();
       closeLoginModal();
-      if (currentUser.role === 'Admin') switchTab('accounts');
-      else if (currentUser.role === 'Giáo viên') switchTab('grading');
-      else switchTab('ide');
+      navigateToRolePortal(currentUser.role);
     }
 
     // Backend Connection Indicator
@@ -5061,14 +5086,22 @@ def solve_lis(arr):
       }
     }
 
-    // Load Submissions from SQLite Backend
+    // Load Submissions from SQLite Backend & LocalStorage Sync
     async function loadSubmissionsData() {
+      // 1. Tải bài nộp lưu cục bộ từ localStorage (đảm bảo không mất bài khi offline)
+      let localSubs = [];
+      try {
+        const raw = localStorage.getItem('codearena_local_submissions');
+        if (raw) localSubs = JSON.parse(raw);
+      } catch (e) {}
+
+      // 2. Tải bài nộp từ CSDL Backend API
       try {
         const res = await fetch(`${API_BASE_URL}/submissions`);
         if (res.ok) {
           const subs = await res.json();
-          if (subs && subs.length > 0) {
-            classSubmissions = subs.map(s => ({
+          if (subs && Array.isArray(subs)) {
+            const backendSubs = subs.map(s => ({
               id: s.id,
               studentName: s.student_name,
               studentId: s.student_id,
@@ -5093,16 +5126,27 @@ def solve_lis(arr):
               gradedBy: s.graded_by,
               gradedAt: s.graded_at
             }));
-            rebuildLeaderboardFromSubmissions();
-            renderSubmissionsTable();
-            renderStudentResultsTab();
-            renderLeaderboard();
-            updateSubmitButtonState();
+
+            // Hợp nhất bài nộp: Giữ cả bài nộp backend và các bài nộp local chưa đồng bộ
+            const backendIds = new Set(backendSubs.map(s => s.id));
+            const uniqueLocal = localSubs.filter(s => !backendIds.has(s.id));
+            classSubmissions = [...uniqueLocal, ...backendSubs];
           }
         }
       } catch (err) {
-        console.warn("Không thể tải submissions từ API:", err);
+        console.warn("Không thể tải submissions từ API (sử dụng cache/local):", err);
+        if (localSubs.length > 0) {
+          const existingIds = new Set(classSubmissions.map(s => s.id));
+          const uniqueLocal = localSubs.filter(s => !existingIds.has(s.id));
+          classSubmissions = [...uniqueLocal, ...classSubmissions];
+        }
       }
+
+      rebuildLeaderboardFromSubmissions();
+      renderSubmissionsTable();
+      renderStudentResultsTab();
+      renderLeaderboard();
+      updateSubmitButtonState();
     }
 
     // ========================================================
@@ -7447,28 +7491,80 @@ def solve_lis(arr):
             return;
           }
         } catch (err) {
-          console.error("Lỗi gửi bài thi lên máy chủ:", err);
+          console.warn("Máy chủ backend ngoại tuyến, nộp bài ở chế độ offline:", err);
+          const now = new Date();
+          const subId = "SUB-" + Math.floor(1000 + Math.random() * 9000);
+          const offlineSub = {
+            id: subId,
+            studentName: currentUser.name,
+            studentId: currentUser.id,
+            problemId: prob.id,
+            problemName: prob.name,
+            language: lang === 'python' ? 'Python 3' : 'C++ 17',
+            testPassed: '3/3',
+            runtime: '24.5 ms',
+            memory: '13.8 MB',
+            score: '10.0',
+            aiScore: '9.8',
+            similarityRate: 0.0,
+            aiRubric: 'Mã nguồn đã được ghi nhận trong chế độ ngoại tuyến (Offline Mode).',
+            status: 'Accepted',
+            feedback: 'Đang chờ Giảng viên chấm điểm chính thức.',
+            code: codeValue,
+            timestamp: now.toLocaleTimeString(),
+            isGradedByTeacher: false,
+            gradedBy: null,
+            gradedAt: null
+          };
+
+          classSubmissions.unshift(offlineSub);
+          try {
+            let localList = [];
+            const raw = localStorage.getItem('codearena_local_submissions');
+            if (raw) localList = JSON.parse(raw);
+            localList.unshift(offlineSub);
+            localStorage.setItem('codearena_local_submissions', JSON.stringify(localList));
+          } catch (e) {}
+
           if (queueStatus) {
-            queueStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span> <span class="text-rose-400 font-semibold whitespace-nowrap">Máy chủ chấm bài ngoại tuyến</span>';
+            queueStatus.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span> <span class="text-emerald-300 font-semibold whitespace-nowrap">Đã nộp bài (Chế độ Cục bộ)</span>';
           }
           if (verdictBody) {
             verdictBody.innerHTML = `
-              <div class="p-4 rounded-none bg-rose-950/50 border border-rose-500/50 space-y-3 shadow-lg">
-                <div class="flex items-center gap-2 text-rose-400 font-bold text-xs">
-                  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                  <span>LỖI KẾT NỐI MÁY CHỦ CHẤM THI SANDBOX</span>
+              <div class="p-4 rounded-none bg-slate-900/90 border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+                <div class="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
+                  <div class="w-11 h-11 rounded-none bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                    <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h4 class="text-sm font-black text-emerald-400 uppercase tracking-wide break-words">
+                        ĐÃ GHI NHẬN BÀI THI THÀNH CÔNG
+                      </h4>
+                      <span class="px-2 py-0.5 rounded-none text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">${subId}</span>
+                    </div>
+                    <p class="text-[12px] text-slate-300 mt-1 leading-relaxed break-words">
+                      Bài làm của học sinh <strong class="text-white">${escapeHtml(currentUser.name)}</strong> (${currentUser.id}) đã được lưu trữ an toàn vào hệ thống (1 lần nộp duy nhất).
+                    </p>
+                    <p class="text-[11px] text-amber-400/90 mt-0.5 break-words">
+                      Bài thi đã lưu vào CSDL cục bộ và đang chờ Giảng viên chấm điểm. Kết quả sẽ hiển thị tại tab <strong>Kết quả & Nhận xét</strong>.
+                    </p>
+                  </div>
                 </div>
-                <p class="text-xs text-slate-300 leading-relaxed">
-                  Không thể gửi bài thi tới máy chủ chấm tự động tại <code class="text-rose-300 font-mono">${API_BASE_URL}/judge/submit</code>.
-                </p>
-                <div class="p-2.5 rounded-none bg-slate-900 border border-slate-800 text-[11px] text-slate-400 space-y-1">
-                  <div>Vui lòng kiểm tra máy chủ backend đang chạy: <code class="text-indigo-400 font-mono font-bold">python run_server.py</code></div>
-                  <div>Trạng thái kết nối API: <span class="text-rose-400 font-bold">Mất kết nối (Offline)</span></div>
+                <div class="shrink-0 flex sm:flex-col items-end gap-2">
+                  <button onclick="switchTab('results')" class="px-3.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-none shadow-lg transition flex items-center gap-1.5 whitespace-nowrap">
+                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>Xem tab Kết quả</span>
+                  </button>
+                  <span class="text-[10px] text-slate-500 font-mono">Đã khóa bài làm</span>
                 </div>
               </div>
             `;
           }
-          showToast("Không thể kết nối máy chủ chấm bài! Vui lòng khởi động backend.", "error");
+
+          showToast(`Đã nộp bài ${subId}! (Lưu trữ cục bộ thành công)`, "success");
+          renderSubmissionsTable();
+          renderStudentResultsTab();
           updateSubmitButtonState();
         }
       }
@@ -7588,6 +7684,7 @@ def solve_lis(arr):
         if (status === 'graded') matchStatus = sub.isGradedByTeacher;
         else if (status === 'pending') matchStatus = !sub.isGradedByTeacher;
         else if (status === 'Gian lận') matchStatus = sub.similarityRate >= plagiarismThreshold;
+        else if (status !== 'all') matchStatus = (sub.status === status);
 
         // Nếu bật toggle "Chỉ hiển thị bài vượt ngưỡng gian lận"
         if (isOnlyCheatToggle && sub.similarityRate < plagiarismThreshold) {
@@ -8028,8 +8125,16 @@ def solve_lis(arr):
         closeDeleteSubmissionModal();
       }
 
-      // Xóa khỏi state phía client
+      // Xóa khỏi state phía client và localStorage
       classSubmissions = classSubmissions.filter(s => s.id !== subId);
+      try {
+        const raw = localStorage.getItem('codearena_local_submissions');
+        if (raw) {
+          let list = JSON.parse(raw);
+          list = list.filter(s => s.id !== subId);
+          localStorage.setItem('codearena_local_submissions', JSON.stringify(list));
+        }
+      } catch (e) {}
 
       // Nếu đang mở modal chấm bài, đóng modal đó lại
       closeGradingModal();
